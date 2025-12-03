@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Question, Subject, QuestionType, DiagramElement, ClozeElement, MatrixColumn, MatrixRow, OrderingItem } from '@/types';
+import { supabase } from '@/lib/supabaseClient';
 
 interface QuestionManagerProps {
     questions: Question[];
@@ -171,7 +172,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
         setOrderingItems(newItems);
     };
 
-    const handleAddQuestion = () => {
+    const handleAddQuestion = async () => {
         if (!questionText || !selectedSubject || !selectedChapter) {
             alert('Please fill all required fields');
             return;
@@ -222,38 +223,63 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             return;
         }
 
-        const newQuestion: Question = {
-            id: customId.trim() || Date.now().toString(),
+        const newQuestionData = {
             type: questionType,
             text: questionText,
             options: (['diagram', 'cloze', 'matrix', 'ordering', 'input'].includes(questionType)) ? [] : options,
-            correctOptions: (['diagram', 'cloze', 'matrix', 'ordering', 'input'].includes(questionType)) ? [] : correctOptions,
-            subjectId: selectedSubject,
-            chapterId: selectedChapter,
-            exhibitContent: exhibitContent.trim() || undefined,
-            ...(questionType === 'diagram' && {
-                diagramType,
-                diagramElements
-            }),
-            ...(questionType === 'cloze' && {
-                clozeText,
-                clozeElements
-            }),
-            ...(questionType === 'matrix' && {
-                matrixColumns,
-                matrixRows
-            }),
-            ...(questionType === 'ordering' && {
-                orderingItems
-            }),
-            ...(questionType === 'input' && {
-                correctAnswerInput,
-                answerTolerance: answerTolerance || 0,
-                inputUnit
-            })
+            correct_options: (['diagram', 'cloze', 'matrix', 'ordering', 'input'].includes(questionType)) ? [] : correctOptions,
+            subject_id: selectedSubject,
+            chapter_id: selectedChapter,
+            exhibit_content: exhibitContent.trim() || null,
+            diagram_type: questionType === 'diagram' ? diagramType : null,
+            diagram_elements: questionType === 'diagram' ? diagramElements : null,
+            cloze_text: questionType === 'cloze' ? clozeText : null,
+            cloze_elements: questionType === 'cloze' ? clozeElements : null,
+            matrix_columns: questionType === 'matrix' ? matrixColumns : null,
+            matrix_rows: questionType === 'matrix' ? matrixRows : null,
+            ordering_items: questionType === 'ordering' ? orderingItems : null,
+            correct_answer_input: questionType === 'input' ? correctAnswerInput : null,
+            answer_tolerance: questionType === 'input' ? (answerTolerance || 0) : null,
+            input_unit: questionType === 'input' ? inputUnit : null
         };
 
-        setQuestions([...questions, newQuestion]);
+        const { data, error } = await supabase
+            .from('questions')
+            .insert([newQuestionData])
+            .select();
+
+        if (error) {
+            console.error('Error saving question:', error);
+            alert('Error saving question: ' + error.message);
+            return;
+        }
+
+        if (data) {
+            const savedQuestion = data[0];
+            const newQuestion: Question = {
+                id: savedQuestion.id,
+                type: savedQuestion.type,
+                text: savedQuestion.text,
+                options: savedQuestion.options || [],
+                correctOptions: savedQuestion.correct_options || [],
+                subjectId: savedQuestion.subject_id,
+                chapterId: savedQuestion.chapter_id,
+                exhibitContent: savedQuestion.exhibit_content,
+                diagramUrl: savedQuestion.diagram_url,
+                diagramType: savedQuestion.diagram_type,
+                diagramElements: savedQuestion.diagram_elements,
+                clozeText: savedQuestion.cloze_text,
+                clozeElements: savedQuestion.cloze_elements,
+                matrixColumns: savedQuestion.matrix_columns,
+                matrixRows: savedQuestion.matrix_rows,
+                orderingItems: savedQuestion.ordering_items,
+                correctOrder: savedQuestion.correct_order,
+                correctAnswerInput: savedQuestion.correct_answer_input,
+                answerTolerance: savedQuestion.answer_tolerance,
+                inputUnit: savedQuestion.input_unit
+            };
+            setQuestions([...questions, newQuestion]);
+        }
 
         // Reset form
         setQuestionText('');
