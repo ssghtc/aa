@@ -9,11 +9,16 @@ export interface Subject {
     chapters: Chapter[];
 }
 
-export type QuestionType = 'single' | 'multiple' | 'diagram' | 'cloze' | 'matrix' | 'ordering' | 'input';
+export type QuestionType =
+    | 'single' | 'multiple' | 'diagram' | 'cloze' | 'matrix' | 'ordering' | 'input'
+    | 'sentence_completion' | 'drag_drop_priority' | 'compare_classify'
+    | 'expected_not_expected' | 'indicated_not_indicated' | 'sata'
+    | 'priority_action' | 'case_study';
 
 export interface DiagramElement {
     id: string;
     label: string;
+    description?: string;
     options: string[];
     correctAnswer: string;
     position: { x: number; y: number };
@@ -41,6 +46,27 @@ export interface OrderingItem {
     text: string;
 }
 
+// Clinical Types Definitions
+export interface DropdownGroup { id: string; options: string[]; correctAnswer: string; }
+export interface DragDropItem { id: string; text: string; requiresFollowup: boolean; }
+export interface DropZone { id: string; label: string; }
+export interface ClassificationCondition { id: string; name: string; }
+export interface ClassificationCharacteristic { id: string; text: string; appliesTo: string[]; }
+export interface ExpectedFinding { id: string; text: string; isExpected: boolean; }
+export interface IndicatedIntervention { id: string; text: string; isIndicated: boolean; rationale?: string; }
+export interface SataOption { id: string; text: string; isCorrect: boolean; }
+export interface PriorityActionOption { id: string; text: string; priorityRank: number; }
+export interface CaseStudySubQuestion {
+    id: string;
+    questionOrder: number;
+    focusArea: string;
+    questionText: string;
+    subQuestionType: string;
+    options: any[];
+    correctAnswer: any;
+    rationale?: string;
+}
+
 export interface Question {
     id: string;
     type: QuestionType;
@@ -49,6 +75,9 @@ export interface Question {
     correctOptions: number[]; // Array of indices for correct answers
     subjectId: string;
     chapterId: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    rationale?: string;
+    scenario?: string;
 
     // Optional Exhibit Content (for Case Studies)
     exhibitContent?: string;
@@ -74,6 +103,36 @@ export interface Question {
     correctAnswerInput?: string; // The numeric or text answer
     answerTolerance?: number; // Optional tolerance for numeric answers
     inputUnit?: string; // e.g., "ml/hr", "mg"
+
+    // Clinical Question Specific Fields
+    sentenceTemplate?: string;
+    dropdownGroups?: DropdownGroup[];
+
+    dragDropItems?: DragDropItem[];
+    dragDropZones?: DropZone[];
+
+    compareConditions?: ClassificationCondition[];
+    compareCharacteristics?: ClassificationCharacteristic[];
+
+    expectedFindings?: ExpectedFinding[];
+    conditionName?: string;
+
+    indicatedInterventions?: IndicatedIntervention[];
+    clinicalSituation?: string;
+
+    sataOptions?: SataOption[];
+    sataPrompt?: string;
+
+    priorityActions?: PriorityActionOption[];
+    emergencyScenario?: string;
+
+    casePatientInfo?: string;
+    caseHistory?: string;
+    caseVitals?: any;
+    caseLabs?: any;
+    caseAssessment?: string;
+    casePrimaryCondition?: string;
+    caseSubQuestions?: CaseStudySubQuestion[];
 }
 
 export interface Blog {

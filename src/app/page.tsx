@@ -7,6 +7,7 @@ import QuestionManager from '@/components/QuestionManager';
 import BlogManager from '@/components/BlogManager';
 import SubjectManager from '@/components/SubjectManager';
 import PreviewSection from '@/components/PreviewSection';
+import ClinicalQuestionsManager from '@/components/ClinicalQuestionsManager';
 import ComingSoon from '@/components/ComingSoon';
 import { Question, Blog, Subject } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
@@ -83,6 +84,8 @@ export default function Home() {
         return <DashboardStats questions={questions} blogs={blogs} subjects={subjects} />;
       case 'questions':
         return <QuestionManager questions={questions} setQuestions={setQuestions} subjects={subjects} />;
+      case 'clinical':
+        return <ClinicalQuestionsManager />;
       case 'blogs':
         return <BlogManager blogs={blogs} setBlogs={setBlogs} />;
       case 'subjects':

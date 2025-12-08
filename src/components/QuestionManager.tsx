@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { Question, Subject, QuestionType, DiagramElement, ClozeElement, MatrixColumn, MatrixRow, OrderingItem } from '@/types';
+import {
+    Question, Subject, QuestionType,
+    DiagramElement, ClozeElement, MatrixColumn, MatrixRow, OrderingItem,
+    DropdownGroup, DragDropItem, DropZone, ClassificationCondition, ClassificationCharacteristic,
+    ExpectedFinding, IndicatedIntervention, SataOption, PriorityActionOption, CaseStudySubQuestion
+} from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 
 interface QuestionManagerProps {
@@ -54,6 +59,53 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
     const [correctAnswerInput, setCorrectAnswerInput] = useState('');
     const [answerTolerance, setAnswerTolerance] = useState<number>(0);
     const [inputUnit, setInputUnit] = useState('');
+
+    // Clinical Field State
+    const [rationale, setRationale] = useState('');
+    const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+    const [scenario, setScenario] = useState('');
+
+    // 1. Sentence Completion
+    const [sentenceTemplate, setSentenceTemplate] = useState('');
+    const [dropdownGroups, setDropdownGroups] = useState<DropdownGroup[]>([]);
+
+    // 2. Drag & Drop
+    const [dragDropItems, setDragDropItems] = useState<DragDropItem[]>([]);
+    const [dragDropZones, setDragDropZones] = useState<DropZone[]>([
+        { id: 'priority', label: 'Immediate Follow-up' },
+        { id: 'monitor', label: 'Monitor' }
+    ]);
+
+    // 3. Compare & Classify
+    const [compareConditions, setCompareConditions] = useState<ClassificationCondition[]>([
+        { id: 'cond1', name: '' }, { id: 'cond2', name: '' }
+    ]);
+    const [compareCharacteristics, setCompareCharacteristics] = useState<ClassificationCharacteristic[]>([]);
+
+    // 4. Expected Findings
+    const [expectedFindings, setExpectedFindings] = useState<ExpectedFinding[]>([]);
+    const [conditionName, setConditionName] = useState('');
+
+    // 5. Indicated Interventions
+    const [indicatedInterventions, setIndicatedInterventions] = useState<IndicatedIntervention[]>([]);
+    const [clinicalSituation, setClinicalSituation] = useState('');
+
+    // 6. SATA
+    const [sataOptions, setSataOptions] = useState<SataOption[]>([]);
+    const [sataPrompt, setSataPrompt] = useState('');
+
+    // 7. Priority Action
+    const [priorityActions, setPriorityActions] = useState<PriorityActionOption[]>([]);
+    const [emergencyScenario, setEmergencyScenario] = useState('');
+
+    // 8. Case Study
+    const [casePatientInfo, setCasePatientInfo] = useState('');
+    const [caseHistory, setCaseHistory] = useState('');
+    const [caseVitals, setCaseVitals] = useState({ bp: '', hr: '', rr: '', temp: '', spo2: '' });
+    const [caseLabs, setCaseLabs] = useState('');
+    const [caseAssessment, setCaseAssessment] = useState('');
+    const [casePrimaryCondition, setCasePrimaryCondition] = useState('');
+    const [caseSubQuestions, setCaseSubQuestions] = useState<CaseStudySubQuestion[]>([]);
 
     const handleOptionChange = (index: number, value: string) => {
         const newOptions = [...options];
@@ -172,9 +224,299 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
         setOrderingItems(newItems);
     };
 
+    // Clinical: Helper Functions
+
+    // Sentence Completion
+    const addDropdownGroup = () => {
+        setDropdownGroups([...dropdownGroups, {
+            id: (dropdownGroups.length + 1).toString(),
+            options: ['', '', '', ''],
+            correctAnswer: ''
+        }]);
+        setSentenceTemplate(prev => prev + ` {{${dropdownGroups.length + 1}}} `);
+    };
+
+    const updateDropdownGroup = (index: number, field: keyof DropdownGroup, value: any) => {
+        const newGroups = [...dropdownGroups];
+        newGroups[index] = { ...newGroups[index], [field]: value };
+        setDropdownGroups(newGroups);
+    };
+
+    // Drag Drop
+    const addDragDropItem = () => {
+        setDragDropItems([...dragDropItems, {
+            id: `item${dragDropItems.length + 1}`,
+            text: '',
+            requiresFollowup: false
+        }]);
+    };
+
+    const updateDragDropItem = (index: number, field: keyof DragDropItem, value: any) => {
+        const newItems = [...dragDropItems];
+        newItems[index] = { ...newItems[index], [field]: value };
+        setDragDropItems(newItems);
+    };
+
+    // Compare Classify
+    const addCompareCharacteristic = () => {
+        setCompareCharacteristics([...compareCharacteristics, {
+            id: `char${compareCharacteristics.length + 1}`,
+            text: '',
+            appliesTo: []
+        }]);
+    };
+
+    const updateCompareCharacteristic = (index: number, field: keyof ClassificationCharacteristic, value: any) => {
+        const newChars = [...compareCharacteristics];
+        newChars[index] = { ...newChars[index], [field]: value };
+        setCompareCharacteristics(newChars);
+    };
+
+    // Expected Findings
+    const addExpectedFinding = () => {
+        setExpectedFindings([...expectedFindings, {
+            id: `find${expectedFindings.length + 1}`,
+            text: '',
+            isExpected: true
+        }]);
+    };
+
+    const updateExpectedFinding = (index: number, field: keyof ExpectedFinding, value: any) => {
+        const newFindings = [...expectedFindings];
+        newFindings[index] = { ...newFindings[index], [field]: value };
+        setExpectedFindings(newFindings);
+    };
+
+    // Indicated Interventions
+    const addIndicatedIntervention = () => {
+        setIndicatedInterventions([...indicatedInterventions, {
+            id: `int${indicatedInterventions.length + 1}`,
+            text: '',
+            isIndicated: true,
+            rationale: ''
+        }]);
+    };
+
+    const updateIndicatedIntervention = (index: number, field: keyof IndicatedIntervention, value: any) => {
+        const newInterventions = [...indicatedInterventions];
+        newInterventions[index] = { ...newInterventions[index], [field]: value };
+        setIndicatedInterventions(newInterventions);
+    };
+
+    // SATA
+    const addSataOption = () => {
+        setSataOptions([...sataOptions, {
+            id: `opt${sataOptions.length + 1}`,
+            text: '',
+            isCorrect: false
+        }]);
+    };
+
+    const updateSataOption = (index: number, field: keyof SataOption, value: any) => {
+        const newOptions = [...sataOptions];
+        newOptions[index] = { ...newOptions[index], [field]: value };
+        setSataOptions(newOptions);
+    };
+
+    // Priority Action
+    const addPriorityAction = () => {
+        setPriorityActions([...priorityActions, {
+            id: `act${priorityActions.length + 1}`,
+            text: '',
+            priorityRank: 0
+        }]);
+    };
+
+    const updatePriorityAction = (index: number, field: keyof PriorityActionOption, value: any) => {
+        const newActions = [...priorityActions];
+        newActions[index] = { ...newActions[index], [field]: value };
+        setPriorityActions(newActions);
+    };
+
+    // Case Study
+    const addCaseSubQuestion = () => {
+        setCaseSubQuestions([...caseSubQuestions, {
+            id: `sq${caseSubQuestions.length + 1}`,
+            questionOrder: caseSubQuestions.length + 1,
+            focusArea: '',
+            questionText: '',
+            subQuestionType: 'single', // Align with main types
+            options: [],
+            correctAnswer: null
+        }]);
+    };
+
+    const updateCaseSubQuestion = (index: number, field: keyof CaseStudySubQuestion, value: any) => {
+        const newSubQ = [...caseSubQuestions];
+        newSubQ[index] = { ...newSubQ[index], [field]: value };
+        setCaseSubQuestions(newSubQ);
+    };
+
     const handleAddQuestion = async () => {
         if (!questionText || !selectedSubject || !selectedChapter) {
             alert('Please fill all required fields');
+            return;
+        }
+
+        const isClinical = [
+            'sentence_completion', 'drag_drop_priority', 'compare_classify',
+            'expected_not_expected', 'indicated_not_indicated', 'sata',
+            'priority_action', 'case_study'
+        ].includes(questionType);
+
+        if (isClinical) {
+            try {
+                // 1. Insert into main clinical_questions table
+                const clinicalData = {
+                    title: questionText.substring(0, 100) + (questionText.length > 100 ? '...' : ''),
+                    instruction: questionText,
+                    scenario: scenario || null,
+                    rationale: rationale || null,
+                    difficulty: difficulty,
+                    subject_id: selectedSubject,
+                    chapter_id: selectedChapter,
+                    question_type: questionType,
+                    clinical_topic: 'General', // Default
+                    clinical_focus: 'General'  // Default
+                };
+
+                const { data: qData, error: qError } = await supabase
+                    .from('clinical_questions')
+                    .insert([clinicalData])
+                    .select()
+                    .single();
+
+                if (qError) throw qError;
+                const questionId = qData.id;
+
+                // 2. Insert into specific table
+                let specificTable = '';
+                let specificData: any = {};
+
+                if (questionType === 'sentence_completion') {
+                    specificTable = 'sentence_completion_questions';
+                    specificData = {
+                        question_id: questionId,
+                        sentence_template: sentenceTemplate,
+                        dropdown_groups: dropdownGroups.map(g => ({
+                            id: g.id,
+                            options: g.options,
+                            correctAnswer: g.correctAnswer
+                        })) // Ensure serializable
+                    };
+                } else if (questionType === 'drag_drop_priority') {
+                    specificTable = 'drag_drop_priority_questions';
+                    specificData = {
+                        question_id: questionId,
+                        items: dragDropItems,
+                        drop_zones: dragDropZones
+                    };
+                } else if (questionType === 'compare_classify') {
+                    specificTable = 'compare_classify_questions';
+                    specificData = {
+                        question_id: questionId,
+                        conditions: compareConditions,
+                        characteristics: compareCharacteristics
+                    };
+                } else if (questionType === 'expected_not_expected') {
+                    specificTable = 'expected_finding_questions';
+                    specificData = {
+                        question_id: questionId,
+                        condition_name: conditionName,
+                        findings: expectedFindings
+                    };
+                } else if (questionType === 'indicated_not_indicated') {
+                    specificTable = 'indicated_intervention_questions';
+                    specificData = {
+                        question_id: questionId,
+                        clinical_situation: clinicalSituation,
+                        interventions: indicatedInterventions
+                    };
+                } else if (questionType === 'sata') {
+                    specificTable = 'sata_questions';
+                    specificData = {
+                        question_id: questionId,
+                        prompt: sataPrompt,
+                        options: sataOptions
+                    };
+                } else if (questionType === 'priority_action') {
+                    specificTable = 'priority_action_questions';
+                    specificData = {
+                        question_id: questionId,
+                        emergency_scenario: emergencyScenario,
+                        actions: priorityActions
+                    };
+                } else if (questionType === 'case_study') {
+                    // Special handling for case study (main + sub)
+                    specificData = {
+                        question_id: questionId,
+                        patient_info: casePatientInfo,
+                        history: caseHistory,
+                        vital_signs: caseVitals,
+                        lab_values: caseLabs || null,
+                        assessment_findings: caseAssessment,
+                        primary_condition: casePrimaryCondition || 'Unknown'
+                    };
+
+                    const { data: caseData, error: caseError } = await supabase
+                        .from('case_study_questions')
+                        .insert([specificData])
+                        .select()
+                        .single();
+
+                    if (caseError) throw caseError;
+
+                    // Insert sub-questions
+                    if (caseSubQuestions.length > 0) {
+                        const subQData = caseSubQuestions.map(sq => ({
+                            case_study_id: caseData.id,
+                            question_order: sq.questionOrder,
+                            focus_area: sq.focusArea,
+                            question_text: sq.questionText,
+                            sub_question_type: sq.subQuestionType,
+                            options: sq.options || [],
+                            correct_answer: sq.correctAnswer,
+                            rationale: sq.rationale
+                        }));
+                        const { error: subQError } = await supabase
+                            .from('case_study_sub_questions')
+                            .insert(subQData);
+                        if (subQError) throw subQError;
+                    }
+                    specificTable = ''; // Already handled
+                }
+
+                if (specificTable) {
+                    const { error: specError } = await supabase.from(specificTable).insert([specificData]);
+                    if (specError) throw specError;
+                }
+
+                // Add to local state for immediate display in Recent Questions
+                const newClinicalQuestion: Question = {
+                    id: questionId,
+                    type: questionType,
+                    text: questionText,
+                    subjectId: selectedSubject,
+                    chapterId: selectedChapter,
+                    options: [],
+                    correctOptions: [],
+                    rationale: rationale || undefined,
+                    difficulty: difficulty,
+                    scenario: scenario || undefined
+                };
+                setQuestions([...questions, newClinicalQuestion]);
+
+                alert('Clinical Question Saved Successfully!');
+
+                // Reset common fields
+                setQuestionText('');
+                setScenario('');
+                setRationale('');
+
+            } catch (err: any) {
+                console.error('Error saving clinical question:', err);
+                alert('Error saving clinical question: ' + (err.message || 'Unknown error'));
+            }
             return;
         }
 
@@ -382,35 +724,57 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                         Question Type
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                        {(['single', 'multiple', 'diagram', 'cloze', 'matrix', 'ordering', 'input'] as const).map(type => (
-                            <button
-                                key={type}
-                                onClick={() => {
-                                    setQuestionType(type);
-                                    setCorrectOptions([0]);
-                                }}
-                                style={{
-                                    padding: '1rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: questionType === type ? '2px solid #a855f7' : '2px solid var(--border-color)',
-                                    background: questionType === type ? 'rgba(168, 85, 247, 0.1)' : 'transparent',
-                                    color: questionType === type ? 'white' : 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem',
-                                    flexDirection: 'column'
-                                }}
-                            >
-                                <span style={{ fontSize: '1.5rem' }}>
-                                    {type === 'single' ? '◉' : type === 'multiple' ? '☑' : type === 'diagram' ? '📊' : type === 'cloze' ? '📝' : type === 'matrix' ? '▦' : type === 'ordering' ? '⇅' : '⌨'}
-                                </span>
-                                {type === 'single' ? 'Single Choice' : type === 'multiple' ? 'Multiple Choice' : type === 'diagram' ? 'Interactive Flowchart' : type === 'cloze' ? 'Fill in Blanks' : type === 'matrix' ? 'Matrix Table' : type === 'ordering' ? 'Ordering' : 'Input/Calc'}
-                            </button>
-                        ))}
+                        {(['single', 'multiple', 'diagram', 'cloze', 'matrix', 'ordering', 'input',
+                            'sentence_completion', 'drag_drop_priority', 'compare_classify',
+                            'expected_not_expected', 'indicated_not_indicated', 'sata',
+                            'priority_action', 'case_study'] as const).map(type => (
+                                <button
+                                    key={type}
+                                    onClick={() => {
+                                        setQuestionType(type);
+                                        setCorrectOptions([0]);
+                                    }}
+                                    style={{
+                                        padding: '1rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: questionType === type ? '2px solid #a855f7' : '2px solid var(--border-color)',
+                                        background: questionType === type ? 'rgba(168, 85, 247, 0.1)' : 'transparent',
+                                        color: questionType === type ? 'white' : 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        flexDirection: 'column',
+                                        minHeight: '100px'
+                                    }}
+                                >
+                                    <span style={{ fontSize: '1.5rem' }}>
+                                        {type === 'sentence_completion' ? '🧩' :
+                                            type === 'drag_drop_priority' ? '✋' :
+                                                type === 'compare_classify' ? '⚖️' :
+                                                    type === 'expected_not_expected' ? '🔍' :
+                                                        type === 'indicated_not_indicated' ? '✅' :
+                                                            type === 'sata' ? '☑️' :
+                                                                type === 'priority_action' ? '⚡' :
+                                                                    type === 'case_study' ? '📋' :
+                                                                        type === 'single' ? '◉' : type === 'multiple' ? '☑' : type === 'diagram' ? '📊' : type === 'cloze' ? '📝' : type === 'matrix' ? '▦' : type === 'ordering' ? '⇅' : '⌨'}
+                                    </span>
+                                    <span style={{ fontSize: '0.8rem', textAlign: 'center' }}>
+                                        {type === 'sentence_completion' ? 'Sentence Comp.' :
+                                            type === 'drag_drop_priority' ? 'Drag Priority' :
+                                                type === 'compare_classify' ? 'Compare/Classify' :
+                                                    type === 'expected_not_expected' ? 'Expected/Not' :
+                                                        type === 'indicated_not_indicated' ? 'Indicated/Not' :
+                                                            type === 'sata' ? 'SATA' :
+                                                                type === 'priority_action' ? 'Priority Action' :
+                                                                    type === 'case_study' ? 'Case Study' :
+                                                                        type === 'single' ? 'Single Choice' : type === 'multiple' ? 'Multiple Choice' : type === 'diagram' ? 'Flowchart' : type === 'cloze' ? 'Fill Blanks' : type === 'matrix' ? 'Matrix' : type === 'ordering' ? 'Ordering' : 'Input/Calc'}
+                                    </span>
+                                </button>
+                            ))}
                     </div>
                 </div>
 
@@ -908,6 +1272,252 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     </div>
                 )}
 
+                {/* CLINICAL SPECIFIC FIELDS */}
+
+                {/* 1. Sentence Completion */}
+                {questionType === 'sentence_completion' && (
+                    <div style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px' }}>
+                        <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '4px', color: '#a5b4fc' }}>
+                            <p style={{ margin: 0 }}><strong>Instruction:</strong> Use "Insert Dropdown" to add a placeholder. The text <code>{'{{1}}'}</code> corresponds to Dropdown 1.</p>
+                        </div>
+                        <h4 style={{ color: '#a5b4fc', marginBottom: '1rem' }}>Sentence Template & Dropdowns</h4>
+                        <textarea
+                            value={sentenceTemplate}
+                            onChange={(e) => setSentenceTemplate(e.target.value)}
+                            rows={3}
+                            placeholder="e.g. A patient with {{1}} should take {{2}}."
+                            style={{ width: '100%', marginBottom: '1rem', padding: '1rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                        />
+                        <button onClick={addDropdownGroup} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Dropdown Group</button>
+                        {dropdownGroups.map((group, idx) => (
+                            <div key={group.id} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+                                <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#a5b4fc' }}>Dropdown {idx + 1} ({`{{${group.id}}}`})</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    {group.options.map((opt, optIdx) => (
+                                        <input key={optIdx} value={opt} onChange={e => {
+                                            const newOpts = [...group.options]; newOpts[optIdx] = e.target.value;
+                                            updateDropdownGroup(idx, 'options', newOpts);
+                                        }} placeholder={`Option ${optIdx + 1}`} style={{ padding: '0.5rem', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} />
+                                    ))}
+                                </div>
+                                <select value={group.correctAnswer} onChange={e => updateDropdownGroup(idx, 'correctAnswer', e.target.value)} style={{ marginTop: '0.5rem', width: '100%', padding: '0.5rem', background: 'var(--bg-primary)', color: 'white', borderRadius: '4px', border: '1px solid #22c55e' }}>
+                                    <option value="">Select Correct Answer</option>
+                                    {group.options.filter(o => o).map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 2. Drag & Drop */}
+                {questionType === 'drag_drop_priority' && (
+                    <div style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px' }}>
+                        <h4 style={{ color: '#a5b4fc', marginBottom: '1rem' }}>Drag Items Configuration</h4>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Define items and specify if they belong to the priority zone (Immediate Follow-up).</p>
+
+                        <button onClick={addDragDropItem} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Item</button>
+
+                        <div style={{ display: 'grid', gap: '0.75rem' }}>
+                            {dragDropItems.map((item, idx) => (
+                                <div key={item.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: '4px' }}>
+                                    <input value={item.text} onChange={e => updateDragDropItem(idx, 'text', e.target.value)} placeholder="Item text" style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} />
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: item.requiresFollowup ? '#22c55e' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={item.requiresFollowup} onChange={e => updateDragDropItem(idx, 'requiresFollowup', e.target.checked)} />
+                                        Requires Priority?
+                                    </label>
+                                    <button onClick={() => { const n = [...dragDropItems]; n.splice(idx, 1); setDragDropItems(n); }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 3. Compare & Classify */}
+                {questionType === 'compare_classify' && (
+                    <div style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px' }}>
+                        <h4 style={{ color: '#a5b4fc', marginBottom: '1rem' }}>Compare & Classify</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#a5b4fc' }}>Condition 1 Name</label>
+                                <input value={compareConditions[0].name} onChange={e => { const newC = [...compareConditions]; newC[0].name = e.target.value; setCompareConditions(newC); }} placeholder="e.g. Ulcerative Colitis" style={{ width: '100%', padding: '0.5rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#a5b4fc' }}>Condition 2 Name</label>
+                                <input value={compareConditions[1].name} onChange={e => { const newC = [...compareConditions]; newC[1].name = e.target.value; setCompareConditions(newC); }} placeholder="e.g. Crohn's Disease" style={{ width: '100%', padding: '0.5rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            </div>
+                        </div>
+
+                        <h5 style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Characteristics</h5>
+                        <button onClick={addCompareCharacteristic} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Characteristic</button>
+
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                            {compareCharacteristics.map((char, idx) => (
+                                <div key={char.id} style={{ background: 'var(--bg-primary)', padding: '1rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                                    <input value={char.text} onChange={e => updateCompareCharacteristic(idx, 'text', e.target.value)} placeholder="Characteristic description" style={{ width: '100%', marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-secondary)', color: 'white', border: 'none', borderRadius: '4px' }} />
+                                    <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Applies to:</span>
+                                        {compareConditions.map(cond => (
+                                            <label key={cond.id} style={{ color: 'white', display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer' }}>
+                                                <input type="checkbox"
+                                                    checked={char.appliesTo?.includes(cond.id)}
+                                                    onChange={e => {
+                                                        const current = char.appliesTo || [];
+                                                        const newApplies = e.target.checked ? [...current, cond.id] : current.filter(id => id !== cond.id);
+                                                        updateCompareCharacteristic(idx, 'appliesTo', newApplies);
+                                                    }}
+                                                />
+                                                {cond.name || cond.id}
+                                            </label>
+                                        ))}
+                                        <button onClick={() => { const n = [...compareCharacteristics]; n.splice(idx, 1); setCompareCharacteristics(n); }} style={{ marginLeft: 'auto', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 4. Expected Findings */}
+                {questionType === 'expected_not_expected' && (
+                    <div style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#a5b4fc' }}>Clinical Condition</label>
+                        <input value={conditionName} onChange={e => setConditionName(e.target.value)} placeholder="Condition Name (e.g. Left-Sided Heart Failure)" style={{ marginBottom: '1.5rem', width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+
+                        <h5 style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Findings</h5>
+                        <button onClick={addExpectedFinding} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Finding</button>
+
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                            {expectedFindings.map((find, idx) => (
+                                <div key={find.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: '4px' }}>
+                                    <input value={find.text} onChange={e => updateExpectedFinding(idx, 'text', e.target.value)} placeholder="Finding description" style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} />
+                                    <select value={find.isExpected ? 'true' : 'false'} onChange={e => updateExpectedFinding(idx, 'isExpected', e.target.value === 'true')} style={{ padding: '0.5rem', background: find.isExpected ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+                                        <option value="true">Expected</option>
+                                        <option value="false">Not Expected</option>
+                                    </select>
+                                    <button onClick={() => { const n = [...expectedFindings]; n.splice(idx, 1); setExpectedFindings(n); }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 5. Indicated Interventions */}
+                {questionType === 'indicated_not_indicated' && (
+                    <div style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#a5b4fc' }}>Clinical Situation</label>
+                        <input value={clinicalSituation} onChange={e => setClinicalSituation(e.target.value)} placeholder="e.g. Patient with severe sepsis..." style={{ marginBottom: '1.5rem', width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+
+                        <h5 style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Interventions</h5>
+                        <button onClick={addIndicatedIntervention} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Intervention</button>
+
+                        <div style={{ display: 'grid', gap: '1rem' }}>
+                            {indicatedInterventions.map((int, idx) => (
+                                <div key={int.id} style={{ padding: '1rem', background: 'var(--bg-primary)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
+                                        <input value={int.text} onChange={e => updateIndicatedIntervention(idx, 'text', e.target.value)} placeholder="Intervention description" style={{ flex: 1, padding: '0.5rem', background: 'var(--bg-secondary)', border: 'none', color: 'white', borderRadius: '4px' }} />
+                                        <select value={int.isIndicated ? 'true' : 'false'} onChange={e => updateIndicatedIntervention(idx, 'isIndicated', e.target.value === 'true')} style={{ padding: '0.5rem', background: int.isIndicated ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+                                            <option value="true">Indicated</option>
+                                            <option value="false">Not Indicated</option>
+                                        </select>
+                                        <button onClick={() => { const n = [...indicatedInterventions]; n.splice(idx, 1); setIndicatedInterventions(n); }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                                    </div>
+                                    <input value={int.rationale || ''} onChange={e => updateIndicatedIntervention(idx, 'rationale', e.target.value)} placeholder="Rationale (optional)" style={{ width: '100%', padding: '0.5rem', background: 'transparent', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)', borderRadius: '4px', fontSize: '0.9rem' }} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 6. SATA */}
+                {questionType === 'sata' && (
+                    <div style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#a5b4fc' }}>Question Prompt</label>
+                        <input value={sataPrompt} onChange={e => setSataPrompt(e.target.value)} placeholder="e.g. Which of the following findings require immediate reporting?" style={{ marginBottom: '1.5rem', width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+
+                        <h5 style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Options</h5>
+                        <button onClick={addSataOption} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Option</button>
+
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                            {sataOptions.map((opt, idx) => (
+                                <div key={opt.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: '4px' }}>
+                                    <input value={opt.text} onChange={e => updateSataOption(idx, 'text', e.target.value)} placeholder="Option text" style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} />
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: opt.isCorrect ? '#22c55e' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={opt.isCorrect} onChange={e => updateSataOption(idx, 'isCorrect', e.target.checked)} />
+                                        Correct
+                                    </label>
+                                    <button onClick={() => { const n = [...sataOptions]; n.splice(idx, 1); setSataOptions(n); }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 7. Priority Action */}
+                {questionType === 'priority_action' && (
+                    <div style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#a5b4fc' }}>Emergency Scenario</label>
+                        <textarea value={emergencyScenario} onChange={e => setEmergencyScenario(e.target.value)} placeholder="Describe the emergency situation details..." style={{ width: '100%', marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} rows={3} />
+
+                        <h5 style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Actions (Rank 1 = Most Important)</h5>
+                        <button onClick={addPriorityAction} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Action</button>
+
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                            {priorityActions.map((act, idx) => (
+                                <div key={act.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: '4px' }}>
+                                    <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#a5b4fc' }}>#{act.priorityRank}</span>
+                                    <input value={act.text} onChange={e => updatePriorityAction(idx, 'text', e.target.value)} placeholder="Action text" style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} />
+                                    <input type="number" value={act.priorityRank} onChange={e => updatePriorityAction(idx, 'priorityRank', parseInt(e.target.value))} placeholder="Rank" style={{ width: '60px', padding: '0.5rem', background: 'var(--bg-secondary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                                    <button onClick={() => { const n = [...priorityActions]; n.splice(idx, 1); setPriorityActions(n); }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                                </div>
+                            ))}
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Note: Assign strict ranks 1, 2, 3... for dragging order.</p>
+                    </div>
+                )}
+
+                {/* 8. Case Study */}
+                {questionType === 'case_study' && (
+                    <div style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px' }}>
+                        <h4 style={{ color: '#a5b4fc', marginBottom: '1rem' }}>Patient Case Data</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                            <textarea value={casePatientInfo} onChange={e => setCasePatientInfo(e.target.value)} placeholder="Patient Info (Age, Gender, CC)" style={{ padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} rows={3} />
+                            <textarea value={caseHistory} onChange={e => setCaseHistory(e.target.value)} placeholder="Medical History" style={{ padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} rows={3} />
+                        </div>
+
+                        <h5 style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Vital Signs</h5>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <input value={caseVitals.bp} onChange={e => setCaseVitals({ ...caseVitals, bp: e.target.value })} placeholder="BP (120/80)" style={{ padding: '0.5rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <input value={caseVitals.hr} onChange={e => setCaseVitals({ ...caseVitals, hr: e.target.value })} placeholder="HR (80)" style={{ padding: '0.5rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <input value={caseVitals.rr} onChange={e => setCaseVitals({ ...caseVitals, rr: e.target.value })} placeholder="RR (16)" style={{ padding: '0.5rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <input value={caseVitals.temp} onChange={e => setCaseVitals({ ...caseVitals, temp: e.target.value })} placeholder="Temp (37.0)" style={{ padding: '0.5rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <input value={caseVitals.spo2} onChange={e => setCaseVitals({ ...caseVitals, spo2: e.target.value })} placeholder="SpO2 (98%)" style={{ padding: '0.5rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                        </div>
+
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#a5b4fc' }}>Key Assessment Findings</label>
+                        <textarea value={caseAssessment} onChange={e => setCaseAssessment(e.target.value)} placeholder="Lung sounds, pupil reaction, skin color..." style={{ width: '100%', marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }} rows={2} />
+
+                        <div style={{ marginBottom: '2rem', padding: '1rem', borderTop: '1px dashed var(--border-color)' }}>
+                            <h4 style={{ color: '#a5b4fc', marginBottom: '1rem' }}>Sub-Questions ({caseSubQuestions.length})</h4>
+                            <button onClick={addCaseSubQuestion} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Case Sub-Question</button>
+
+                            {caseSubQuestions.map((sq, idx) => (
+                                <div key={sq.id} style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--bg-primary)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#a5b4fc' }}>Q{sq.questionOrder}: {sq.focusArea || 'Focus Area'}</div>
+                                        <button onClick={() => { const n = [...caseSubQuestions]; n.splice(idx, 1); setCaseSubQuestions(n); }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+                                    </div>
+                                    <input value={sq.focusArea} onChange={e => updateCaseSubQuestion(idx, 'focusArea', e.target.value)} placeholder="Focus Area (e.g. Assessment)" style={{ width: '100%', marginBottom: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', color: 'white', borderRadius: '4px', border: 'none' }} />
+                                    <input value={sq.questionText} onChange={e => updateCaseSubQuestion(idx, 'questionText', e.target.value)} placeholder="Question Text" style={{ width: '100%', marginBottom: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', color: 'white', borderRadius: '4px', border: 'none' }} />
+
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                        <em>(Sub-question options editor simplified for this view. Add options in DB or expand later.)</em>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Diagram-specific fields */}
                 {questionType === 'diagram' && (
                     <>
@@ -1119,6 +1729,50 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     </div>
                 )}
 
+                {/* Common Clinical Fields */}
+                {['sentence_completion', 'drag_drop_priority', 'compare_classify', 'expected_not_expected', 'indicated_not_indicated', 'sata', 'priority_action', 'case_study'].includes(questionType) && (
+                    <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ color: '#a5b4fc', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>📝</span> Clinical Explanations & Context
+                        </h4>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Rationale (Answer Explanation)</label>
+                            <textarea
+                                value={rationale}
+                                onChange={e => setRationale(e.target.value)}
+                                rows={3}
+                                style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                                placeholder="Explain the correct answer and clinical reasoning..."
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Difficulty Level</label>
+                                <select
+                                    value={difficulty}
+                                    onChange={e => setDifficulty(e.target.value as any)}
+                                    style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}
+                                >
+                                    <option value="easy">Easy</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="hard">Hard</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Scenario Context (Optional)</label>
+                                <input
+                                    value={scenario}
+                                    onChange={e => setScenario(e.target.value)}
+                                    placeholder="General context if not covered above..."
+                                    style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <button
                     className="btn btn-primary"
                     style={{
@@ -1292,6 +1946,25 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                             </p>
                                             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                                                 Answer: {q.correctAnswerInput} {q.inputUnit}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : ['sentence_completion', 'drag_drop_priority', 'compare_classify', 'expected_not_expected', 'indicated_not_indicated', 'sata', 'priority_action', 'case_study'].includes(q.type) ? (
+                                <div style={{
+                                    padding: '1.5rem',
+                                    background: 'rgba(99, 102, 241, 0.05)',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--border-color)'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <span style={{ fontSize: '1.5rem' }}>🏥</span>
+                                        <div>
+                                            <p style={{ fontWeight: 600, color: '#818cf8', textTransform: 'capitalize' }}>
+                                                {q.type.replace(/_/g, ' ')}
+                                            </p>
+                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                Clinical Reasoning Scenario
                                             </p>
                                         </div>
                                     </div>

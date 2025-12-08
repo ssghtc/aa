@@ -9,6 +9,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'questions', label: 'Questions', icon: '❓' },
+        { id: 'clinical', label: 'Clinical Questions', icon: '🏥' },
         { id: 'blogs', label: 'Blogs', icon: '📝' },
         { id: 'subjects', label: 'Subjects', icon: '📚' },
         { id: 'webinars', label: 'Webinars', icon: '🎥' },
