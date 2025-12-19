@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Subject, Chapter } from '@/types';
+import { supabase } from '@/lib/supabaseClient';
 
 interface SubjectManagerProps {
     subjects: Subject[];
@@ -7,35 +8,184 @@ interface SubjectManagerProps {
 }
 
 export default function SubjectManager({ subjects, setSubjects }: SubjectManagerProps) {
+    const [editingSubject, setEditingSubject] = useState<{ id: string, name: string } | null>(null);
+    const [editingChapter, setEditingChapter] = useState<{ id: string, name: string } | null>(null);
     const [newSubject, setNewSubject] = useState('');
     const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
     const [newChapter, setNewChapter] = useState('');
 
-    const handleAddSubject = () => {
+    const handleAddSubject = async () => {
         if (!newSubject.trim()) return;
-        const subject: Subject = {
-            id: Date.now().toString(),
-            name: newSubject,
-            chapters: []
-        };
-        setSubjects([...subjects, subject]);
-        setNewSubject('');
+
+        try {
+            const { data, error } = await supabase
+                .from('subjects')
+                .insert([{ name: newSubject }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            if (data) {
+                const subject: Subject = {
+                    id: data.id,
+                    name: data.name,
+                    chapters: []
+                };
+                setSubjects([...subjects, subject]);
+                setNewSubject('');
+            }
+        } catch (error: any) {
+            console.error('Error adding subject:', error);
+            alert('Error adding subject: ' + error.message);
+        }
     };
 
-    const handleAddChapter = () => {
+    const handleUpdateSubject = async () => {
+        if (!editingSubject || !editingSubject.name.trim()) return;
+
+        try {
+            const { error } = await supabase
+                .from('subjects')
+                .update({ name: editingSubject.name })
+                .eq('id', editingSubject.id);
+
+            if (error) throw error;
+
+            setSubjects(subjects.map(sub =>
+                sub.id === editingSubject.id ? { ...sub, name: editingSubject.name } : sub
+            ));
+            setEditingSubject(null);
+        } catch (error: any) {
+            console.error('Error updating subject:', error);
+            alert('Error updating subject: ' + error.message);
+        }
+    };
+
+    const handleDeleteSubject = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this subject? All associated chapters and questions will be deleted.')) return;
+
+        try {
+            const { error } = await supabase
+                .from('subjects')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            setSubjects(subjects.filter(sub => sub.id !== id));
+            if (selectedSubjectId === id) setSelectedSubjectId('');
+        } catch (error: any) {
+            console.error('Error deleting subject:', error);
+            alert('Error deleting subject: ' + error.message);
+        }
+    };
+
+    const handleAddChapter = async () => {
         if (!newChapter.trim() || !selectedSubjectId) return;
 
-        setSubjects(subjects.map(sub => {
-            if (sub.id === selectedSubjectId) {
-                return {
-                    ...sub,
-                    chapters: [...sub.chapters, { id: Date.now().toString(), name: newChapter }]
-                };
+        try {
+            const { data, error } = await supabase
+                .from('chapters')
+                .insert([{ name: newChapter, subject_id: selectedSubjectId }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            if (data) {
+                setSubjects(subjects.map(sub => {
+                    if (sub.id === selectedSubjectId) {
+                        return {
+                            ...sub,
+                            chapters: [...sub.chapters, { id: data.id, name: data.name }]
+                        };
+                    }
+                    return sub;
+                }));
+                // Reset chapter input but keep subject selected
+                setNewChapter('');
             }
-            return sub;
-        }));
-        setNewChapter('');
+        } catch (error: any) {
+            console.error('Error adding chapter:', error);
+            alert('Error adding chapter: ' + error.message);
+        }
     };
+
+    const handleUpdateChapter = async () => {
+        if (!editingChapter || !editingChapter.name.trim() || !selectedSubjectId) return;
+
+        try {
+            const { error } = await supabase
+                .from('chapters')
+                .update({ name: editingChapter.name })
+                .eq('id', editingChapter.id);
+
+            if (error) throw error;
+
+            setSubjects(subjects.map(sub => {
+                if (sub.id === selectedSubjectId) {
+                    return {
+                        ...sub,
+                        chapters: sub.chapters.map(chap =>
+                            chap.id === editingChapter.id ? { ...chap, name: editingChapter.name } : chap
+                        )
+                    };
+                }
+                return sub;
+            }));
+            setEditingChapter(null);
+        } catch (error: any) {
+            console.error('Error updating chapter:', error);
+            alert('Error updating chapter: ' + error.message);
+        }
+    };
+
+    const handleDeleteChapter = async (chapterId: string) => {
+        if (!confirm('Are you sure you want to delete this chapter?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('chapters')
+                .delete()
+                .eq('id', chapterId);
+
+            if (error) throw error;
+
+            setSubjects(subjects.map(sub => {
+                if (sub.id === selectedSubjectId) {
+                    return {
+                        ...sub,
+                        chapters: sub.chapters.filter(chap => chap.id !== chapterId)
+                    };
+                }
+                return sub;
+            }));
+        } catch (error: any) {
+            console.error('Error deleting chapter:', error);
+            alert('Error deleting chapter: ' + error.message);
+        }
+    };
+
+    const handleAddOrUpdateSubjectEnterData = (e: any) => {
+        if (e.key === 'Enter') {
+            if (editingSubject) {
+                handleUpdateSubject();
+            } else {
+                handleAddSubject();
+            }
+        }
+    }
+
+    const handleAddOrUpdateChapterEnterData = (e: any) => {
+        if (e.key === 'Enter') {
+            if (editingChapter) {
+                handleUpdateChapter();
+            } else {
+                handleAddChapter();
+            }
+        }
+    }
 
     return (
         <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -49,7 +199,7 @@ export default function SubjectManager({ subjects, setSubjects }: SubjectManager
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
-                {/* Add Subject Card */}
+                {/* Manage Subjects Card */}
                 <div style={{
                     background: 'var(--bg-card)',
                     padding: '2rem',
@@ -69,7 +219,7 @@ export default function SubjectManager({ subjects, setSubjects }: SubjectManager
                     }} />
 
                     <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.5rem' }}>📚</span> New Subject
+                        <span style={{ fontSize: '1.5rem' }}>📚</span> Manage Subjects
                     </h3>
 
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
@@ -77,6 +227,7 @@ export default function SubjectManager({ subjects, setSubjects }: SubjectManager
                             type="text"
                             value={newSubject}
                             onChange={(e) => setNewSubject(e.target.value)}
+                            onKeyDown={handleAddOrUpdateSubjectEnterData}
                             placeholder="e.g. Computer Science"
                             style={{
                                 flex: 1,
@@ -95,24 +246,79 @@ export default function SubjectManager({ subjects, setSubjects }: SubjectManager
                         <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Active Subjects
                         </h4>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {subjects.map(sub => (
                                 <div key={sub.id} style={{
-                                    padding: '0.5rem 1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '0.75rem 1rem',
                                     background: 'rgba(99, 102, 241, 0.1)',
                                     border: '1px solid rgba(99, 102, 241, 0.2)',
                                     borderRadius: 'var(--radius-md)',
-                                    color: '#818cf8',
-                                    fontWeight: 500
+                                    color: '#818cf8'
                                 }}>
-                                    {sub.name}
+                                    {editingSubject?.id === sub.id ? (
+                                        <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+                                            <input
+                                                type="text"
+                                                value={editingSubject.name}
+                                                onChange={(e) => setEditingSubject({ ...editingSubject, name: e.target.value })}
+                                                onKeyDown={handleAddOrUpdateSubjectEnterData}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '0.5rem',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    background: 'var(--bg-secondary)',
+                                                    border: '1px solid var(--border-color)',
+                                                    color: 'white',
+                                                    outline: 'none'
+                                                }}
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={handleUpdateSubject}
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success)' }}
+                                                title="Save"
+                                            >
+                                                ✅
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingSubject(null)}
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                                                title="Cancel"
+                                            >
+                                                ❌
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <span style={{ fontWeight: 500 }}>{sub.name}</span>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button
+                                                    onClick={() => setEditingSubject({ id: sub.id, name: sub.name })}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}
+                                                    title="Edit"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteSubject(sub.id)}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}
+                                                    title="Delete"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Add Chapter Card */}
+                {/* Manage Chapters Card */}
                 <div style={{
                     background: 'var(--bg-card)',
                     padding: '2rem',
@@ -132,7 +338,7 @@ export default function SubjectManager({ subjects, setSubjects }: SubjectManager
                     }} />
 
                     <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.5rem' }}>📑</span> New Chapter
+                        <span style={{ fontSize: '1.5rem' }}>📑</span> Manage Chapters
                     </h3>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
@@ -160,6 +366,7 @@ export default function SubjectManager({ subjects, setSubjects }: SubjectManager
                                 type="text"
                                 value={newChapter}
                                 onChange={(e) => setNewChapter(e.target.value)}
+                                onKeyDown={handleAddOrUpdateChapterEnterData}
                                 placeholder="e.g. Introduction to Algorithms"
                                 style={{
                                     flex: 1,
@@ -188,19 +395,74 @@ export default function SubjectManager({ subjects, setSubjects }: SubjectManager
                                 ? `Chapters in ${subjects.find(s => s.id === selectedSubjectId)?.name}`
                                 : 'Select a subject to view chapters'}
                         </h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                             {subjects.find(s => s.id === selectedSubjectId)?.chapters.map(chap => (
                                 <div key={chap.id} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
                                     padding: '0.75rem',
                                     background: 'rgba(255, 255, 255, 0.03)',
                                     borderRadius: 'var(--radius-sm)',
-                                    color: 'var(--text-secondary)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
+                                    color: 'var(--text-secondary)'
                                 }}>
-                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-secondary)' }}></span>
-                                    {chap.name}
+                                    {editingChapter?.id === chap.id ? (
+                                        <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+                                            <input
+                                                type="text"
+                                                value={editingChapter.name}
+                                                onChange={(e) => setEditingChapter({ ...editingChapter, name: e.target.value })}
+                                                onKeyDown={handleAddOrUpdateChapterEnterData}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '0.5rem',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    background: 'var(--bg-secondary)',
+                                                    border: '1px solid var(--border-color)',
+                                                    color: 'white',
+                                                    outline: 'none'
+                                                }}
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={handleUpdateChapter}
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success)' }}
+                                                title="Save"
+                                            >
+                                                ✅
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingChapter(null)}
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                                                title="Cancel"
+                                            >
+                                                ❌
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-secondary)' }}></span>
+                                                {chap.name}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button
+                                                    onClick={() => setEditingChapter({ id: chap.id, name: chap.name })}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.7 }}
+                                                    title="Edit"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteChapter(chap.id)}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.7 }}
+                                                    title="Delete"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             ))}
                         </div>

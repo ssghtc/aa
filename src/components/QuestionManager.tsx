@@ -106,6 +106,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
     const [caseAssessment, setCaseAssessment] = useState('');
     const [casePrimaryCondition, setCasePrimaryCondition] = useState('');
     const [caseSubQuestions, setCaseSubQuestions] = useState<CaseStudySubQuestion[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleOptionChange = (index: number, value: string) => {
         const newOptions = [...options];
@@ -1672,9 +1673,25 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                 {/* Options for single/multiple choice */}
                 {['single', 'multiple'].includes(questionType) && (
                     <div style={{ marginBottom: '2.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                            Answer Options <span style={{ opacity: 0.6 }}>(Select correct answers)</span>
-                        </label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                Answer Options <span style={{ opacity: 0.6 }}>(Select correct answers)</span>
+                            </label>
+                            <button
+                                onClick={() => setOptions([...options, ''])}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    background: 'rgba(99, 102, 241, 0.1)',
+                                    color: '#818cf8',
+                                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem'
+                                }}
+                            >
+                                + Add Option
+                            </button>
+                        </div>
                         <div style={{ display: 'grid', gap: '1rem' }}>
                             {options.map((opt, idx) => {
                                 const isSelected = correctOptions.includes(idx);
@@ -1722,6 +1739,30 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                                 transition: 'all 0.2s'
                                             }}
                                         />
+                                        {options.length > 2 && (
+                                            <button
+                                                onClick={() => {
+                                                    const newOptions = options.filter((_, i) => i !== idx);
+                                                    setOptions(newOptions);
+                                                    // Adjust correct options indices
+                                                    const newCorrect = correctOptions
+                                                        .filter(i => i !== idx)
+                                                        .map(i => i > idx ? i - 1 : i);
+                                                    setCorrectOptions(newCorrect);
+                                                }}
+                                                style={{
+                                                    padding: '0.5rem',
+                                                    color: '#ef4444',
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    fontSize: '1.2rem'
+                                                }}
+                                                title="Remove Option"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -1788,225 +1829,249 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             </div>
 
             <div>
-                <h3 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 600 }}>Recent Questions</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0 }}>Recent Questions</h3>
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type="text"
+                            placeholder="Search ID, Subject, Chapter..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                padding: '0.75rem 1rem',
+                                paddingLeft: '2.5rem',
+                                width: '300px',
+                                maxWidth: '100%',
+                                background: 'var(--bg-card)',
+                                border: 'var(--glass-border)',
+                                borderRadius: 'var(--radius-md)',
+                                color: 'white',
+                                outline: 'none'
+                            }}
+                        />
+                        <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+                    </div>
+                </div>
                 <div style={{ display: 'grid', gap: '1.5rem' }}>
-                    {questions.slice().reverse().map(q => (
-                        <div key={q.id} style={{
-                            padding: '2rem',
-                            background: 'var(--bg-card)',
-                            borderRadius: 'var(--radius-lg)',
-                            border: 'var(--glass-border)',
-                            transition: 'transform 0.2s',
-                            position: 'relative'
-                        }}>
-                            <div style={{
-                                position: 'absolute',
-                                top: '2rem',
-                                right: '2rem',
-                                display: 'flex',
-                                gap: '0.5rem'
+                    {questions
+                        .filter(q => {
+                            if (!searchQuery) return true;
+                            const query = searchQuery.toLowerCase();
+                            const subject = subjects.find(s => s.id === q.subjectId);
+                            const chapter = subject?.chapters.find(c => c.id === q.chapterId);
+                            return (
+                                q.id.toLowerCase().includes(query) ||
+                                q.text.toLowerCase().includes(query) ||
+                                (subject && subject.name.toLowerCase().includes(query)) ||
+                                (chapter && chapter.name.toLowerCase().includes(query))
+                            );
+                        })
+                        .slice().reverse().map(q => (
+                            <div key={q.id} style={{
+                                padding: '2rem',
+                                background: 'var(--bg-card)',
+                                borderRadius: 'var(--radius-lg)',
+                                border: 'var(--glass-border)',
+                                transition: 'transform 0.2s',
+                                position: 'relative'
                             }}>
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    padding: '0.25rem 0.75rem',
-                                    background: q.type === 'single' ? 'rgba(56, 189, 248, 0.1)' : q.type === 'multiple' ? 'rgba(168, 85, 247, 0.1)' : q.type === 'diagram' ? 'rgba(34, 197, 94, 0.1)' : q.type === 'cloze' ? 'rgba(244, 114, 182, 0.1)' : q.type === 'matrix' ? 'rgba(251, 146, 60, 0.1)' : 'rgba(99, 102, 241, 0.1)',
-                                    color: q.type === 'single' ? '#38bdf8' : q.type === 'multiple' ? '#a855f7' : q.type === 'diagram' ? '#22c55e' : q.type === 'cloze' ? '#f472b6' : q.type === 'matrix' ? '#fb923c' : '#6366f1',
-                                    borderRadius: '20px',
-                                    fontWeight: 600,
-                                    border: q.type === 'single' ? '1px solid rgba(56, 189, 248, 0.2)' : q.type === 'multiple' ? '1px solid rgba(168, 85, 247, 0.2)' : q.type === 'diagram' ? '1px solid rgba(34, 197, 94, 0.2)' : q.type === 'cloze' ? '1px solid rgba(244, 114, 182, 0.2)' : q.type === 'matrix' ? '1px solid rgba(251, 146, 60, 0.2)' : '1px solid rgba(99, 102, 241, 0.2)'
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '2rem',
+                                    right: '2rem',
+                                    display: 'flex',
+                                    gap: '0.5rem'
                                 }}>
-                                    {q.type === 'single' ? 'Single Choice' : q.type === 'multiple' ? 'Multiple Choice' : q.type === 'diagram' ? 'Interactive Flowchart' : q.type === 'cloze' ? 'Fill in Blanks' : q.type === 'matrix' ? 'Matrix Table' : q.type === 'ordering' ? 'Ordering' : 'Input/Calc'}
-                                </span>
-                                {q.exhibitContent && (
                                     <span style={{
                                         fontSize: '0.75rem',
                                         padding: '0.25rem 0.75rem',
-                                        background: 'rgba(14, 165, 233, 0.1)',
-                                        color: '#0ea5e9',
+                                        background: q.type === 'single' ? 'rgba(56, 189, 248, 0.1)' : q.type === 'multiple' ? 'rgba(168, 85, 247, 0.1)' : q.type === 'diagram' ? 'rgba(34, 197, 94, 0.1)' : q.type === 'cloze' ? 'rgba(244, 114, 182, 0.1)' : q.type === 'matrix' ? 'rgba(251, 146, 60, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+                                        color: q.type === 'single' ? '#38bdf8' : q.type === 'multiple' ? '#a855f7' : q.type === 'diagram' ? '#22c55e' : q.type === 'cloze' ? '#f472b6' : q.type === 'matrix' ? '#fb923c' : '#6366f1',
                                         borderRadius: '20px',
                                         fontWeight: 600,
-                                        border: '1px solid rgba(14, 165, 233, 0.2)'
+                                        border: q.type === 'single' ? '1px solid rgba(56, 189, 248, 0.2)' : q.type === 'multiple' ? '1px solid rgba(168, 85, 247, 0.2)' : q.type === 'diagram' ? '1px solid rgba(34, 197, 94, 0.2)' : q.type === 'cloze' ? '1px solid rgba(244, 114, 182, 0.2)' : q.type === 'matrix' ? '1px solid rgba(251, 146, 60, 0.2)' : '1px solid rgba(99, 102, 241, 0.2)'
                                     }}>
-                                        Exhibit
+                                        {q.type === 'single' ? 'Single Choice' : q.type === 'multiple' ? 'Multiple Choice' : q.type === 'diagram' ? 'Interactive Flowchart' : q.type === 'cloze' ? 'Fill in Blanks' : q.type === 'matrix' ? 'Matrix Table' : q.type === 'ordering' ? 'Ordering' : 'Input/Calc'}
                                     </span>
-                                )}
-                            </div>
+                                    {q.exhibitContent && (
+                                        <span style={{
+                                            fontSize: '0.75rem',
+                                            padding: '0.25rem 0.75rem',
+                                            background: 'rgba(14, 165, 233, 0.1)',
+                                            color: '#0ea5e9',
+                                            borderRadius: '20px',
+                                            fontWeight: 600,
+                                            border: '1px solid rgba(14, 165, 233, 0.2)'
+                                        }}>
+                                            Exhibit
+                                        </span>
+                                    )}
+                                </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <span style={{
-                                        fontSize: '0.8rem',
-                                        padding: '0.25rem 0.5rem',
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        color: 'var(--text-secondary)',
-                                        borderRadius: '4px',
-                                        fontFamily: 'monospace'
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <span style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>
+                                            {subjects.find(s => s.id === q.subjectId)?.name}
+                                            <span style={{ margin: '0 0.5rem', opacity: 0.5 }}>/</span>
+                                            {subjects.find(s => s.id === q.subjectId)?.chapters.find(c => c.id === q.chapterId)?.name}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <p style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>{q.text}</p>
+
+                                {q.type === 'diagram' ? (
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)'
                                     }}>
-                                        {q.id}
-                                    </span>
-                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>•</span>
-                                    <span style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>
-                                        {subjects.find(s => s.id === q.subjectId)?.name}
-                                        <span style={{ margin: '0 0.5rem', opacity: 0.5 }}>/</span>
-                                        {subjects.find(s => s.id === q.subjectId)?.chapters.find(c => c.id === q.chapterId)?.name}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <p style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>{q.text}</p>
-
-                            {q.type === 'diagram' ? (
-                                <div style={{
-                                    padding: '1.5rem',
-                                    background: 'rgba(255,255,255,0.02)',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--border-color)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                        <span style={{ fontSize: '1.5rem' }}>📊</span>
-                                        <div>
-                                            <p style={{ fontWeight: 600, color: 'var(--text-accent)' }}>
-                                                {q.diagramType === 'flowchart' ? 'Flowchart' : q.diagramType === 'labeled-diagram' ? 'Labeled Diagram' : 'Process Flow'}
-                                            </p>
-                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                {q.diagramElements?.length || 0} interactive steps
-                                            </p>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                            <span style={{ fontSize: '1.5rem' }}>📊</span>
+                                            <div>
+                                                <p style={{ fontWeight: 600, color: 'var(--text-accent)' }}>
+                                                    {q.diagramType === 'flowchart' ? 'Flowchart' : q.diagramType === 'labeled-diagram' ? 'Labeled Diagram' : 'Process Flow'}
+                                                </p>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                    {q.diagramElements?.length || 0} interactive steps
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : q.type === 'cloze' ? (
-                                <div style={{
-                                    padding: '1.5rem',
-                                    background: 'rgba(255,255,255,0.02)',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--border-color)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                        <span style={{ fontSize: '1.5rem' }}>📝</span>
-                                        <div>
-                                            <p style={{ fontWeight: 600, color: '#f472b6' }}>
-                                                Fill in the Blanks
-                                            </p>
-                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                {q.clozeElements?.length || 0} blanks to fill
-                                            </p>
+                                ) : q.type === 'cloze' ? (
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                            <span style={{ fontSize: '1.5rem' }}>📝</span>
+                                            <div>
+                                                <p style={{ fontWeight: 600, color: '#f472b6' }}>
+                                                    Fill in the Blanks
+                                                </p>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                    {q.clozeElements?.length || 0} blanks to fill
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : q.type === 'matrix' ? (
-                                <div style={{
-                                    padding: '1.5rem',
-                                    background: 'rgba(255,255,255,0.02)',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--border-color)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                        <span style={{ fontSize: '1.5rem' }}>▦</span>
-                                        <div>
-                                            <p style={{ fontWeight: 600, color: '#fb923c' }}>
-                                                Matrix Table
-                                            </p>
-                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                {q.matrixRows?.length || 0} rows, {q.matrixColumns?.length || 0} columns
-                                            </p>
+                                ) : q.type === 'matrix' ? (
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                            <span style={{ fontSize: '1.5rem' }}>▦</span>
+                                            <div>
+                                                <p style={{ fontWeight: 600, color: '#fb923c' }}>
+                                                    Matrix Table
+                                                </p>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                    {q.matrixRows?.length || 0} rows, {q.matrixColumns?.length || 0} columns
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : q.type === 'ordering' ? (
-                                <div style={{
-                                    padding: '1.5rem',
-                                    background: 'rgba(255,255,255,0.02)',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--border-color)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                        <span style={{ fontSize: '1.5rem' }}>⇅</span>
-                                        <div>
-                                            <p style={{ fontWeight: 600, color: '#6366f1' }}>
-                                                Ordering Question
-                                            </p>
-                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                {q.orderingItems?.length || 0} items to sort
-                                            </p>
+                                ) : q.type === 'ordering' ? (
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                            <span style={{ fontSize: '1.5rem' }}>⇅</span>
+                                            <div>
+                                                <p style={{ fontWeight: 600, color: '#6366f1' }}>
+                                                    Ordering Question
+                                                </p>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                    {q.orderingItems?.length || 0} items to sort
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : q.type === 'input' ? (
-                                <div style={{
-                                    padding: '1.5rem',
-                                    background: 'rgba(255,255,255,0.02)',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--border-color)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                        <span style={{ fontSize: '1.5rem' }}>⌨</span>
-                                        <div>
-                                            <p style={{ fontWeight: 600, color: '#6366f1' }}>
-                                                Input/Calculation
-                                            </p>
-                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                Answer: {q.correctAnswerInput} {q.inputUnit}
-                                            </p>
+                                ) : q.type === 'input' ? (
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                            <span style={{ fontSize: '1.5rem' }}>⌨</span>
+                                            <div>
+                                                <p style={{ fontWeight: 600, color: '#6366f1' }}>
+                                                    Input/Calculation
+                                                </p>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                    Answer: {q.correctAnswerInput} {q.inputUnit}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : ['sentence_completion', 'drag_drop_priority', 'compare_classify', 'expected_not_expected', 'indicated_not_indicated', 'sata', 'priority_action', 'case_study'].includes(q.type) ? (
-                                <div style={{
-                                    padding: '1.5rem',
-                                    background: 'rgba(99, 102, 241, 0.05)',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--border-color)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <span style={{ fontSize: '1.5rem' }}>🏥</span>
-                                        <div>
-                                            <p style={{ fontWeight: 600, color: '#818cf8', textTransform: 'capitalize' }}>
-                                                {q.type.replace(/_/g, ' ')}
-                                            </p>
-                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                Clinical Reasoning Scenario
-                                            </p>
+                                ) : ['sentence_completion', 'drag_drop_priority', 'compare_classify', 'expected_not_expected', 'indicated_not_indicated', 'sata', 'priority_action', 'case_study'].includes(q.type) ? (
+                                    <div style={{
+                                        padding: '1.5rem',
+                                        background: 'rgba(99, 102, 241, 0.05)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <span style={{ fontSize: '1.5rem' }}>🏥</span>
+                                            <div>
+                                                <p style={{ fontWeight: 600, color: '#818cf8', textTransform: 'capitalize' }}>
+                                                    {q.type.replace(/_/g, ' ')}
+                                                </p>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                    Clinical Reasoning Scenario
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
-                                    {q.options.map((opt, idx) => {
-                                        const isCorrect = q.correctOptions.includes(idx);
-                                        return (
-                                            <div key={idx} style={{
-                                                padding: '0.75rem 1rem',
-                                                background: isCorrect ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                                                border: isCorrect ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border-color)',
-                                                borderRadius: '8px',
-                                                color: isCorrect ? '#4ade80' : 'var(--text-secondary)',
-                                                fontSize: '0.9rem',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '0.5rem'
-                                            }}>
-                                                <span style={{
-                                                    width: '20px',
-                                                    height: '20px',
-                                                    borderRadius: '50%',
-                                                    background: isCorrect ? '#4ade80' : 'rgba(255,255,255,0.1)',
-                                                    color: isCorrect ? '#0f172a' : 'transparent',
+                                ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                                        {q.options.map((opt, idx) => {
+                                            const isCorrect = q.correctOptions.includes(idx);
+                                            return (
+                                                <div key={idx} style={{
+                                                    padding: '0.75rem 1rem',
+                                                    background: isCorrect ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                                                    border: isCorrect ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border-color)',
+                                                    borderRadius: '8px',
+                                                    color: isCorrect ? '#4ade80' : 'var(--text-secondary)',
+                                                    fontSize: '0.9rem',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontSize: '0.7rem',
-                                                    fontWeight: 'bold'
+                                                    gap: '0.5rem'
                                                 }}>
-                                                    {String.fromCharCode(65 + idx)}
-                                                </span>
-                                                {opt}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                                                    <span style={{
+                                                        width: '20px',
+                                                        height: '20px',
+                                                        borderRadius: '50%',
+                                                        background: isCorrect ? '#4ade80' : 'rgba(255,255,255,0.1)',
+                                                        color: isCorrect ? '#0f172a' : 'transparent',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        {String.fromCharCode(65 + idx)}
+                                                    </span>
+                                                    {opt}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                 </div>
             </div>
         </div>

@@ -7,6 +7,7 @@ import QuestionManager from '@/components/QuestionManager';
 import BlogManager from '@/components/BlogManager';
 import SubjectManager from '@/components/SubjectManager';
 import PreviewSection from '@/components/PreviewSection';
+import StudentManager from '@/components/StudentManager';
 import ClinicalQuestionsManager from '@/components/ClinicalQuestionsManager';
 import ComingSoon from '@/components/ComingSoon';
 import { Question, Blog, Subject } from '@/types';
@@ -90,6 +91,8 @@ export default function Home() {
         return <BlogManager blogs={blogs} setBlogs={setBlogs} />;
       case 'subjects':
         return <SubjectManager subjects={subjects} setSubjects={setSubjects} />;
+      case 'students':
+        return <StudentManager />;
       case 'webinars':
         return <ComingSoon title="Live Webinars" description="Schedule and manage live interactive sessions with your students. Features will include screen sharing, live chat, and recording archives." icon="🎥" />;
       case 'classes':
