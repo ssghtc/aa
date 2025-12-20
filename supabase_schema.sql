@@ -50,6 +50,7 @@ create table if not exists questions (
   correct_answer_input text,
   answer_tolerance numeric,
   input_unit text,
+  rationale text,
 
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

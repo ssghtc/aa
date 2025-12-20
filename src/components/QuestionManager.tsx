@@ -583,7 +583,8 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             ordering_items: questionType === 'ordering' ? orderingItems : null,
             correct_answer_input: questionType === 'input' ? correctAnswerInput : null,
             answer_tolerance: questionType === 'input' ? (answerTolerance || 0) : null,
-            input_unit: questionType === 'input' ? inputUnit : null
+            input_unit: questionType === 'input' ? inputUnit : null,
+            rationale: rationale || null
         };
 
         const { data, error } = await supabase
@@ -619,7 +620,8 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                 correctOrder: savedQuestion.correct_order,
                 correctAnswerInput: savedQuestion.correct_answer_input,
                 answerTolerance: savedQuestion.answer_tolerance,
-                inputUnit: savedQuestion.input_unit
+                inputUnit: savedQuestion.input_unit,
+                rationale: savedQuestion.rationale
             };
             setQuestions([...questions, newQuestion]);
         }
@@ -630,6 +632,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
         setOptions(['', '', '', '']);
         setCorrectOptions([0]);
         setExhibitContent('');
+        setRationale('');
 
         // Reset diagram
         setDiagramElements([{
@@ -1770,49 +1773,48 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     </div>
                 )}
 
-                {/* Common Clinical Fields */}
-                {['sentence_completion', 'drag_drop_priority', 'compare_classify', 'expected_not_expected', 'indicated_not_indicated', 'sata', 'priority_action', 'case_study'].includes(questionType) && (
-                    <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ color: '#a5b4fc', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span>📝</span> Clinical Explanations & Context
-                        </h4>
+                {/* Explanations & Context (Available for all types) */}
+                <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ color: '#a5b4fc', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span>📝</span> Explanations & Context
+                    </h4>
 
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Rationale (Answer Explanation)</label>
-                            <textarea
-                                value={rationale}
-                                onChange={e => setRationale(e.target.value)}
-                                rows={3}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Rationale (Answer Explanation)</label>
+                        <textarea
+                            value={rationale}
+                            onChange={e => setRationale(e.target.value)}
+                            rows={3}
+                            style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                            placeholder="Explain the correct answer and clinical reasoning..."
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Difficulty Level</label>
+                            <select
+                                value={difficulty}
+                                onChange={e => setDifficulty(e.target.value as any)}
+                                style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Scenario Context (Optional)</label>
+                            <input
+                                value={scenario}
+                                onChange={e => setScenario(e.target.value)}
+                                placeholder="General context if not covered above..."
                                 style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-                                placeholder="Explain the correct answer and clinical reasoning..."
                             />
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Difficulty Level</label>
-                                <select
-                                    value={difficulty}
-                                    onChange={e => setDifficulty(e.target.value as any)}
-                                    style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}
-                                >
-                                    <option value="easy">Easy</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="hard">Hard</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Scenario Context (Optional)</label>
-                                <input
-                                    value={scenario}
-                                    onChange={e => setScenario(e.target.value)}
-                                    placeholder="General context if not covered above..."
-                                    style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-                                />
-                            </div>
-                        </div>
                     </div>
-                )}
+                </div>
+
 
                 <button
                     className="btn btn-primary"
