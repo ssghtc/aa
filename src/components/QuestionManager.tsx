@@ -107,6 +107,79 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
     const [casePrimaryCondition, setCasePrimaryCondition] = useState('');
     const [caseSubQuestions, setCaseSubQuestions] = useState<CaseStudySubQuestion[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+
+    const isClinicalType = (type: string) => [
+        'sentence_completion', 'drag_drop_priority', 'compare_classify',
+        'expected_not_expected', 'indicated_not_indicated', 'sata',
+        'priority_action', 'case_study'
+    ].includes(type);
+
+    const handleDeleteQuestion = async (id: string, type: string) => {
+        if (!confirm('Are you sure you want to delete this question? This action cannot be undone.')) return;
+
+        try {
+            const isClinical = isClinicalType(type);
+            const table = isClinical ? 'clinical_questions' : 'questions';
+
+            const { error } = await supabase.from(table).delete().eq('id', id);
+
+            if (error) throw error;
+
+            setQuestions(questions.filter(q => q.id !== id));
+            if (editingQuestionId === id) {
+                handleCancelEdit();
+            }
+        } catch (err: any) {
+            console.error('Error deleting question:', err);
+            alert('Error deleting question: ' + err.message);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingQuestionId(null);
+        setQuestionText('');
+        setCustomId('');
+        setOptions(['', '', '', '']);
+        setCorrectOptions([0]);
+        setExhibitContent('');
+        setRationale('');
+        setScenario('');
+        setDifficulty('medium');
+
+        // Reset specialized fields
+        setDiagramElements([{ id: 'step1', label: '', options: ['', '', '', ''], correctAnswer: '', position: { x: 50, y: 20 } }]);
+        setClozeText('');
+        setClozeElements([]);
+        setMatrixRows([{ id: 'row1', text: '', correctColumnId: '' }]);
+        setOrderingItems([{ id: 'item1', text: '' }, { id: 'item2', text: '' }, { id: 'item3', text: '' }]);
+        setCorrectAnswerInput('');
+        setAnswerTolerance(0);
+        setInputUnit('');
+
+        // Reset clinical fields
+        setSentenceTemplate('');
+        setDropdownGroups([]);
+        setDragDropItems([]);
+        setDragDropZones([{ id: 'priority', label: 'Immediate Follow-up' }, { id: 'monitor', label: 'Monitor' }]);
+        setCompareConditions([{ id: 'cond1', name: '' }, { id: 'cond2', name: '' }]);
+        setCompareCharacteristics([]);
+        setExpectedFindings([]);
+        setConditionName('');
+        setIndicatedInterventions([]);
+        setClinicalSituation('');
+        setSataOptions([]);
+        setSataPrompt('');
+        setPriorityActions([]);
+        setEmergencyScenario('');
+        setCasePatientInfo('');
+        setCaseHistory('');
+        setCaseVitals({ bp: '', hr: '', rr: '', temp: '', spo2: '' });
+        setCaseLabs('');
+        setCaseAssessment('');
+        setCasePrimaryCondition('');
+        setCaseSubQuestions([]);
+    };
 
     const handleOptionChange = (index: number, value: string) => {
         const newOptions = [...options];
@@ -183,6 +256,131 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
         const newElements = [...clozeElements];
         newElements[elementIndex] = { ...newElements[elementIndex], correctAnswer: value };
         setClozeElements(newElements);
+    };
+
+    const handleEditQuestion = async (q: Question) => {
+        try {
+            setEditingQuestionId(q.id);
+            setQuestionType(q.type);
+            setQuestionText(q.text);
+            setSelectedSubject(q.subjectId);
+            setSelectedChapter(q.chapterId);
+            setRationale(q.rationale || '');
+            setScenario(q.scenario || '');
+            setDifficulty(q.difficulty || 'medium');
+            setExhibitContent(q.exhibitContent || '');
+
+            // Standard Types
+            if (['single', 'multiple'].includes(q.type)) {
+                setOptions(q.options || ['', '', '', '']);
+                setCorrectOptions(q.correctOptions || [0]);
+            } else if (q.type === 'diagram') {
+                setDiagramType(q.diagramType || 'flowchart');
+                setDiagramElements(q.diagramElements || []);
+            } else if (q.type === 'cloze') {
+                setClozeText(q.clozeText || '');
+                setClozeElements(q.clozeElements || []);
+            } else if (q.type === 'matrix') {
+                setMatrixColumns(q.matrixColumns || []);
+                setMatrixRows(q.matrixRows || []);
+            } else if (q.type === 'ordering') {
+                setOrderingItems(q.orderingItems || []);
+            } else if (q.type === 'input') {
+                setCorrectAnswerInput(q.correctAnswerInput || '');
+                setAnswerTolerance(q.answerTolerance || 0);
+                setInputUnit(q.inputUnit || '');
+            } else if (isClinicalType(q.type)) {
+                // Fetch specific clinical data from DB to ensure we have deep nested fields
+                // This is needed because the list view might not have all sub-tables joined if not implemented in the fetcher
+
+                // Note: If the passed 'q' object already has the data (e.g. from local creation), we could use it.
+                // But fetching is safer for reliability.
+
+                let specificTable = '';
+                if (q.type === 'sentence_completion') specificTable = 'sentence_completion_questions';
+                else if (q.type === 'drag_drop_priority') specificTable = 'drag_drop_priority_questions';
+                else if (q.type === 'compare_classify') specificTable = 'compare_classify_questions';
+                else if (q.type === 'expected_not_expected') specificTable = 'expected_finding_questions';
+                else if (q.type === 'indicated_not_indicated') specificTable = 'indicated_intervention_questions';
+                else if (q.type === 'sata') specificTable = 'sata_questions';
+                else if (q.type === 'priority_action') specificTable = 'priority_action_questions';
+                else if (q.type === 'case_study') specificTable = 'case_study_questions';
+
+                if (specificTable) {
+                    const { data, error } = await supabase
+                        .from(specificTable)
+                        .select('*')
+                        .eq('question_id', q.id)
+                        .single();
+
+                    if (!error && data) {
+                        if (q.type === 'sentence_completion') {
+                            setSentenceTemplate(data.sentence_template);
+                            setDropdownGroups(data.dropdown_groups.map((g: any) => ({ ...g, options: g.options || [] })));
+                        } else if (q.type === 'drag_drop_priority') {
+                            setDragDropItems(data.items || []);
+                            setDragDropZones(data.drop_zones || []);
+                        } else if (q.type === 'compare_classify') {
+                            setCompareConditions(data.conditions || []);
+                            setCompareCharacteristics(data.characteristics || []);
+                        } else if (q.type === 'expected_not_expected') {
+                            setConditionName(data.condition_name || '');
+                            setExpectedFindings(data.findings || []);
+                        } else if (q.type === 'indicated_not_indicated') {
+                            setClinicalSituation(data.clinical_situation || '');
+                            setIndicatedInterventions(data.interventions || []);
+                        } else if (q.type === 'sata') {
+                            setSataPrompt(data.prompt || '');
+                            setSataOptions(data.options || []);
+                        } else if (q.type === 'priority_action') {
+                            setEmergencyScenario(data.emergency_scenario || '');
+                            setPriorityActions(data.actions || []);
+                        } else if (q.type === 'case_study') {
+                            setCasePatientInfo(data.patient_info || '');
+                            setCaseHistory(data.history || '');
+                            setCaseVitals(data.vital_signs || { bp: '', hr: '', rr: '', temp: '', spo2: '' });
+                            setCaseLabs(data.lab_values || '');
+                            setCaseAssessment(data.assessment_findings || '');
+                            setCasePrimaryCondition(data.primary_condition || '');
+
+                            // Fetch sub-questions for case study
+                            const { data: subData } = await supabase
+                                .from('case_study_sub_questions')
+                                .select('*')
+                                .eq('case_study_id', data.id)
+                                .order('question_order', { ascending: true });
+
+                            if (subData) {
+                                setCaseSubQuestions(subData.map((sq: any) => ({
+                                    id: sq.id,
+                                    questionOrder: sq.question_order,
+                                    focusArea: sq.focus_area,
+                                    questionText: sq.question_text,
+                                    subQuestionType: sq.sub_question_type,
+                                    options: sq.options,
+                                    correctAnswer: sq.correct_answer,
+                                    rationale: sq.rationale
+                                })));
+                            }
+                        }
+                    } else if (q.type === 'sentence_completion' && q.dropdownGroups) {
+                        // Fallback to local data if available (e.g. just created)
+                        setSentenceTemplate(q.sentenceTemplate || '');
+                        setDropdownGroups(q.dropdownGroups);
+                    } else if (q.type === 'drag_drop_priority' && q.dragDropItems) {
+                        setDragDropItems(q.dragDropItems);
+                        setDragDropZones(q.dragDropZones || []);
+                    }
+                    // ... Add other fallbacks if needed, but fetch should usually work.
+                }
+            }
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+            console.error('Error loading question for edit:', error);
+            alert('Failed to load question details.');
+        }
     };
 
     // Matrix element handlers
@@ -359,15 +557,13 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             return;
         }
 
-        const isClinical = [
-            'sentence_completion', 'drag_drop_priority', 'compare_classify',
-            'expected_not_expected', 'indicated_not_indicated', 'sata',
-            'priority_action', 'case_study'
-        ].includes(questionType);
+        const isClinical = isClinicalType(questionType);
 
         if (isClinical) {
             try {
-                // 1. Insert into main clinical_questions table
+                let questionId = editingQuestionId;
+
+                // 1. Upsert into main clinical_questions table
                 const clinicalData = {
                     title: questionText.substring(0, 100) + (questionText.length > 100 ? '...' : ''),
                     instruction: questionText,
@@ -381,16 +577,30 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     clinical_focus: 'General'  // Default
                 };
 
-                const { data: qData, error: qError } = await supabase
-                    .from('clinical_questions')
-                    .insert([clinicalData])
-                    .select()
-                    .single();
+                if (editingQuestionId) {
+                    const { error } = await supabase
+                        .from('clinical_questions')
+                        .update(clinicalData)
+                        .eq('id', editingQuestionId);
+                    if (error) throw error;
 
-                if (qError) throw qError;
-                const questionId = qData.id;
+                    // If editing, we need to handle the specific data. 
+                    // To be safe against type changes, we ideally delete from all potential specific tables or just the current one.
+                    // For now, we delete from the table matching the CURRENT type, which handles re-insertion/updates.
+                    // (Orphaned data from type changes is a tech debt accepted for now).
+                } else {
+                    const { data: qData, error: qError } = await supabase
+                        .from('clinical_questions')
+                        .insert([clinicalData])
+                        .select()
+                        .single();
+                    if (qError) throw qError;
+                    questionId = qData.id;
+                }
 
-                // 2. Insert into specific table
+                if (!questionId) throw new Error("Failed to get Question ID");
+
+                // 2. Handle specific table
                 let specificTable = '';
                 let specificData: any = {};
 
@@ -403,7 +613,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                             id: g.id,
                             options: g.options,
                             correctAnswer: g.correctAnswer
-                        })) // Ensure serializable
+                        }))
                     };
                 } else if (questionType === 'drag_drop_priority') {
                     specificTable = 'drag_drop_priority_questions';
@@ -448,7 +658,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                         actions: priorityActions
                     };
                 } else if (questionType === 'case_study') {
-                    // Special handling for case study (main + sub)
+                    // Case study handling
                     specificData = {
                         question_id: questionId,
                         patient_info: casePatientInfo,
@@ -459,18 +669,25 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                         primary_condition: casePrimaryCondition || 'Unknown'
                     };
 
-                    const { data: caseData, error: caseError } = await supabase
-                        .from('case_study_questions')
-                        .insert([specificData])
-                        .select()
-                        .single();
+                    // For case study, we check if main record exists (by question_id), update or insert
+                    const { data: existingCase } = await supabase.from('case_study_questions').select('id').eq('question_id', questionId).single();
 
-                    if (caseError) throw caseError;
+                    let caseStudyId = existingCase?.id;
+
+                    if (existingCase) {
+                        await supabase.from('case_study_questions').update(specificData).eq('id', existingCase.id);
+                        // Delete old sub-questions to replace
+                        await supabase.from('case_study_sub_questions').delete().eq('case_study_id', existingCase.id);
+                    } else {
+                        const { data: newCase, error: caseError } = await supabase.from('case_study_questions').insert([specificData]).select().single();
+                        if (caseError) throw caseError;
+                        caseStudyId = newCase.id;
+                    }
 
                     // Insert sub-questions
-                    if (caseSubQuestions.length > 0) {
+                    if (caseSubQuestions.length > 0 && caseStudyId) {
                         const subQData = caseSubQuestions.map(sq => ({
-                            case_study_id: caseData.id,
+                            case_study_id: caseStudyId,
                             question_order: sq.questionOrder,
                             focus_area: sq.focusArea,
                             question_text: sq.questionText,
@@ -484,16 +701,21 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                             .insert(subQData);
                         if (subQError) throw subQError;
                     }
-                    specificTable = ''; // Already handled
+                    specificTable = ''; // Handled manually
                 }
 
                 if (specificTable) {
+                    if (editingQuestionId) {
+                        // Delete existing entries for this question in the specific table to allow clean re-insertion
+                        // (This assumes 1:1 or 1:N relationship is fully owned by the question_id)
+                        await supabase.from(specificTable).delete().eq('question_id', questionId);
+                    }
                     const { error: specError } = await supabase.from(specificTable).insert([specificData]);
                     if (specError) throw specError;
                 }
 
-                // Add to local state for immediate display in Recent Questions
-                const newClinicalQuestion: Question = {
+                // Prepare local object
+                const newQuestion: Question = {
                     id: questionId,
                     type: questionType,
                     text: questionText,
@@ -503,16 +725,19 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     correctOptions: [],
                     rationale: rationale || undefined,
                     difficulty: difficulty,
-                    scenario: scenario || undefined
+                    scenario: scenario || undefined,
+                    // If simple clinical types, we might want to store more data locally, but for now this matches original logic
                 };
-                setQuestions([...questions, newClinicalQuestion]);
 
-                alert('Clinical Question Saved Successfully!');
+                if (editingQuestionId) {
+                    setQuestions(questions.map(q => q.id === editingQuestionId ? newQuestion : q));
+                    alert('Clinical Question Updated Successfully!');
+                } else {
+                    setQuestions([...questions, newQuestion]);
+                    alert('Clinical Question Saved Successfully!');
+                }
 
-                // Reset common fields
-                setQuestionText('');
-                setScenario('');
-                setRationale('');
+                handleCancelEdit();
 
             } catch (err: any) {
                 console.error('Error saving clinical question:', err);
@@ -521,6 +746,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             return;
         }
 
+        // Standard Questions Logic
         if (questionType === 'diagram') {
             const hasEmptyLabels = diagramElements.some(el => !el.label.trim());
             const hasEmptyOptions = diagramElements.some(el => el.options.some(opt => !opt.trim()));
@@ -566,7 +792,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             return;
         }
 
-        const newQuestionData = {
+        const questionData = {
             type: questionType,
             text: questionText,
             options: (['diagram', 'cloze', 'matrix', 'ordering', 'input'].includes(questionType)) ? [] : options,
@@ -587,84 +813,89 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             rationale: rationale || null
         };
 
-        const { data, error } = await supabase
-            .from('questions')
-            .insert([newQuestionData])
-            .select();
+        if (editingQuestionId) {
+            const { error } = await supabase
+                .from('questions')
+                .update(questionData)
+                .eq('id', editingQuestionId);
 
-        if (error) {
-            console.error('Error saving question:', error);
-            alert('Error saving question: ' + error.message);
-            return;
-        }
+            if (error) {
+                console.error('Error updating question:', error);
+                alert('Error updating question: ' + error.message);
+                return;
+            }
 
-        if (data) {
-            const savedQuestion = data[0];
-            const newQuestion: Question = {
-                id: savedQuestion.id,
-                type: savedQuestion.type,
-                text: savedQuestion.text,
-                options: savedQuestion.options || [],
-                correctOptions: savedQuestion.correct_options || [],
-                subjectId: savedQuestion.subject_id,
-                chapterId: savedQuestion.chapter_id,
-                exhibitContent: savedQuestion.exhibit_content,
-                diagramUrl: savedQuestion.diagram_url,
-                diagramType: savedQuestion.diagram_type,
-                diagramElements: savedQuestion.diagram_elements,
-                clozeText: savedQuestion.cloze_text,
-                clozeElements: savedQuestion.cloze_elements,
-                matrixColumns: savedQuestion.matrix_columns,
-                matrixRows: savedQuestion.matrix_rows,
-                orderingItems: savedQuestion.ordering_items,
-                correctOrder: savedQuestion.correct_order,
-                correctAnswerInput: savedQuestion.correct_answer_input,
-                answerTolerance: savedQuestion.answer_tolerance,
-                inputUnit: savedQuestion.input_unit,
-                rationale: savedQuestion.rationale
+            // Construct updated object
+            const updatedQuestion: Question = {
+                id: editingQuestionId,
+                type: questionType,
+                text: questionText,
+                options: questionData.options || [],
+                correctOptions: questionData.correct_options || [],
+                subjectId: selectedSubject,
+                chapterId: selectedChapter,
+                exhibitContent: questionData.exhibit_content || undefined,
+                diagramUrl: undefined,
+                diagramType: questionType === 'diagram' ? diagramType : undefined,
+                diagramElements: questionType === 'diagram' ? diagramElements : undefined,
+                clozeText: questionType === 'cloze' ? clozeText : undefined,
+                clozeElements: questionType === 'cloze' ? clozeElements : undefined,
+                matrixColumns: questionType === 'matrix' ? matrixColumns : undefined,
+                matrixRows: questionType === 'matrix' ? matrixRows : undefined,
+                orderingItems: questionType === 'ordering' ? orderingItems : undefined,
+                correctOrder: undefined,
+                correctAnswerInput: questionType === 'input' ? correctAnswerInput : undefined,
+                answerTolerance: questionType === 'input' ? answerTolerance : undefined,
+                inputUnit: questionType === 'input' ? inputUnit : undefined,
+                rationale: rationale || undefined
             };
-            setQuestions([...questions, newQuestion]);
+
+            setQuestions(questions.map(q => q.id === editingQuestionId ? updatedQuestion : q));
+            alert('Question Updated Successfully!');
+
+        } else {
+            const { data, error } = await supabase
+                .from('questions')
+                .insert([questionData])
+                .select();
+
+            if (error) {
+                console.error('Error saving question:', error);
+                alert('Error saving question: ' + error.message);
+                return;
+            }
+
+            if (data) {
+                const savedQuestion = data[0];
+                const newQuestion: Question = {
+                    id: savedQuestion.id,
+                    type: savedQuestion.type,
+                    text: savedQuestion.text,
+                    options: savedQuestion.options || [],
+                    correctOptions: savedQuestion.correct_options || [],
+                    subjectId: savedQuestion.subject_id,
+                    chapterId: savedQuestion.chapter_id,
+                    exhibitContent: savedQuestion.exhibit_content,
+                    diagramUrl: savedQuestion.diagram_url,
+                    diagramType: savedQuestion.diagram_type,
+                    diagramElements: savedQuestion.diagram_elements,
+                    clozeText: savedQuestion.cloze_text,
+                    clozeElements: savedQuestion.cloze_elements,
+                    matrixColumns: savedQuestion.matrix_columns,
+                    matrixRows: savedQuestion.matrix_rows,
+                    orderingItems: savedQuestion.ordering_items,
+                    correctOrder: savedQuestion.correct_order,
+                    correctAnswerInput: savedQuestion.correct_answer_input,
+                    answerTolerance: savedQuestion.answer_tolerance,
+                    inputUnit: savedQuestion.input_unit,
+                    rationale: savedQuestion.rationale
+                };
+                setQuestions([...questions, newQuestion]);
+                alert('Question Saved Successfully!');
+            }
         }
 
-        // Reset form
-        setQuestionText('');
-        setCustomId('');
-        setOptions(['', '', '', '']);
-        setCorrectOptions([0]);
-        setExhibitContent('');
-        setRationale('');
-
-        // Reset diagram
-        setDiagramElements([{
-            id: 'step1',
-            label: '',
-            options: ['', '', '', ''],
-            correctAnswer: '',
-            position: { x: 50, y: 20 }
-        }]);
-
-        // Reset cloze
-        setClozeText('');
-        setClozeElements([]);
-
-        // Reset matrix
-        setMatrixRows([{ id: 'row1', text: '', correctColumnId: '' }]);
-        setMatrixColumns([
-            { id: 'col1', label: 'Anticipated' },
-            { id: 'col2', label: 'Not Anticipated' }
-        ]);
-
-        // Reset ordering
-        setOrderingItems([
-            { id: 'item1', text: '' },
-            { id: 'item2', text: '' },
-            { id: 'item3', text: '' }
-        ]);
-
-        // Reset input
-        setCorrectAnswerInput('');
-        setAnswerTolerance(0);
-        setInputUnit('');
+        handleCancelEdit();
     };
 
     const activeSubject = subjects.find(s => s.id === selectedSubject);
@@ -1816,18 +2047,36 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                 </div>
 
 
-                <button
-                    className="btn btn-primary"
-                    style={{
-                        width: '100%',
-                        padding: '1rem',
-                        fontSize: '1.1rem',
-                        letterSpacing: '0.5px'
-                    }}
-                    onClick={handleAddQuestion}
-                >
-                    Add Question to Bank
-                </button>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                    <button
+                        className="btn btn-primary"
+                        style={{
+                            flex: 1,
+                            padding: '1rem',
+                            fontSize: '1.1rem',
+                            letterSpacing: '0.5px'
+                        }}
+                        onClick={handleAddQuestion}
+                    >
+                        {editingQuestionId ? 'Update Question' : 'Add Question to Bank'}
+                    </button>
+                    {editingQuestionId && (
+                        <button
+                            onClick={handleCancelEdit}
+                            style={{
+                                padding: '1rem 2rem',
+                                background: 'transparent',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontSize: '1rem'
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div>
@@ -1882,8 +2131,45 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                     top: '2rem',
                                     right: '2rem',
                                     display: 'flex',
-                                    gap: '0.5rem'
+                                    gap: '0.5rem',
+                                    alignItems: 'center'
                                 }}>
+                                    <button
+                                        onClick={() => handleEditQuestion(q)}
+                                        style={{
+                                            padding: '0.5rem 0.75rem',
+                                            background: 'rgba(56, 189, 248, 0.1)',
+                                            color: '#38bdf8',
+                                            border: '1px solid rgba(56, 189, 248, 0.2)',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 600
+                                        }}
+                                        title="Edit"
+                                        disabled={!!editingQuestionId && editingQuestionId !== q.id}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteQuestion(q.id, q.type)}
+                                        style={{
+                                            padding: '0.5rem 0.75rem',
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            color: '#ef4444',
+                                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 600
+                                        }}
+                                        title="Delete"
+                                        disabled={!!editingQuestionId}
+                                    >
+                                        Delete
+                                    </button>
+                                    <div style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.5rem' }}></div>
+
                                     <span style={{
                                         fontSize: '0.75rem',
                                         padding: '0.25rem 0.75rem',
@@ -2072,10 +2358,23 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                         })}
                                     </div>
                                 )}
+
+                                {q.rationale && (
+                                    <div style={{
+                                        marginTop: '1.5rem',
+                                        padding: '1rem',
+                                        background: 'rgba(99, 102, 241, 0.1)',
+                                        borderRadius: '6px',
+                                        borderLeft: '4px solid #6366f1'
+                                    }}>
+                                        <p style={{ fontWeight: 600, color: '#a5b4fc', marginBottom: '0.25rem', fontSize: '0.9rem' }}>Rationale:</p>
+                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{q.rationale}</div>
+                                    </div>
+                                )}
                             </div>
                         ))}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
