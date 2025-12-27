@@ -1,0 +1,5 @@
+ALTER TABLE questions 
+ADD COLUMN IF NOT EXISTS exhibits JSONB;
+
+ALTER TABLE clinical_questions 
+ADD COLUMN IF NOT EXISTS exhibits JSONB;

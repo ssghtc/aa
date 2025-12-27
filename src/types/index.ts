@@ -67,6 +67,12 @@ export interface CaseStudySubQuestion {
     rationale?: string;
 }
 
+export interface Exhibit {
+    id: string;
+    title: string;
+    content: string;
+}
+
 export interface Question {
     id: string;
     type: QuestionType;
@@ -78,9 +84,11 @@ export interface Question {
     difficulty?: 'easy' | 'medium' | 'hard';
     rationale?: string;
     scenario?: string;
+    customId?: string;
 
     // Optional Exhibit Content (for Case Studies)
     exhibitContent?: string;
+    exhibits?: Exhibit[];
 
     // For diagram questions
     diagramUrl?: string;

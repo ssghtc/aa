@@ -3,7 +3,7 @@ import {
     Question, Subject, QuestionType,
     DiagramElement, ClozeElement, MatrixColumn, MatrixRow, OrderingItem,
     DropdownGroup, DragDropItem, DropZone, ClassificationCondition, ClassificationCharacteristic,
-    ExpectedFinding, IndicatedIntervention, SataOption, PriorityActionOption, CaseStudySubQuestion
+    ExpectedFinding, IndicatedIntervention, SataOption, PriorityActionOption, CaseStudySubQuestion, Exhibit
 } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -21,6 +21,8 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedChapter, setSelectedChapter] = useState('');
     const [customId, setCustomId] = useState('');
+    const [exhibits, setExhibits] = useState<Exhibit[]>([]);
+    // Deprecated: existingContent for backward compatibility
     const [exhibitContent, setExhibitContent] = useState('');
 
     // Diagram-specific fields
@@ -142,6 +144,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
         setCustomId('');
         setOptions(['', '', '', '']);
         setCorrectOptions([0]);
+        setExhibits([]);
         setExhibitContent('');
         setRationale('');
         setScenario('');
@@ -269,6 +272,8 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             setScenario(q.scenario || '');
             setDifficulty(q.difficulty || 'medium');
             setExhibitContent(q.exhibitContent || '');
+            setCustomId(q.customId || '');
+            setExhibits(q.exhibits || (q.exhibitContent ? [{ id: '1', title: 'Exhibit', content: q.exhibitContent }] : []));
 
             // Standard Types
             if (['single', 'multiple'].includes(q.type)) {
@@ -567,6 +572,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                 const clinicalData = {
                     title: questionText.substring(0, 100) + (questionText.length > 100 ? '...' : ''),
                     instruction: questionText,
+                    custom_id: customId,
                     scenario: scenario || null,
                     rationale: rationale || null,
                     difficulty: difficulty,
@@ -574,7 +580,8 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     chapter_id: selectedChapter,
                     question_type: questionType,
                     clinical_topic: 'General', // Default
-                    clinical_focus: 'General'  // Default
+                    clinical_focus: 'General',  // Default
+                    exhibits: exhibits
                 };
 
                 if (editingQuestionId) {
@@ -721,6 +728,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     text: questionText,
                     subjectId: selectedSubject,
                     chapterId: selectedChapter,
+                    customId: customId,
                     options: [],
                     correctOptions: [],
                     rationale: rationale || undefined,
@@ -795,11 +803,13 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
         const questionData = {
             type: questionType,
             text: questionText,
+            custom_id: customId,
             options: (['diagram', 'cloze', 'matrix', 'ordering', 'input'].includes(questionType)) ? [] : options,
             correct_options: (['diagram', 'cloze', 'matrix', 'ordering', 'input'].includes(questionType)) ? [] : correctOptions,
             subject_id: selectedSubject,
             chapter_id: selectedChapter,
-            exhibit_content: exhibitContent.trim() || null,
+            exhibits: exhibits,
+            exhibit_content: exhibits.length > 0 ? exhibits[0].content : (exhibitContent.trim() || null), // Fallback
             diagram_type: questionType === 'diagram' ? diagramType : null,
             diagram_elements: questionType === 'diagram' ? diagramElements : null,
             cloze_text: questionType === 'cloze' ? clozeText : null,
@@ -834,6 +844,8 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                 correctOptions: questionData.correct_options || [],
                 subjectId: selectedSubject,
                 chapterId: selectedChapter,
+                customId: customId,
+                exhibits: exhibits,
                 exhibitContent: questionData.exhibit_content || undefined,
                 diagramUrl: undefined,
                 diagramType: questionType === 'diagram' ? diagramType : undefined,
@@ -875,6 +887,8 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     correctOptions: savedQuestion.correct_options || [],
                     subjectId: savedQuestion.subject_id,
                     chapterId: savedQuestion.chapter_id,
+                    customId: savedQuestion.custom_id,
+                    exhibits: savedQuestion.exhibits,
                     exhibitContent: savedQuestion.exhibit_content,
                     diagramUrl: savedQuestion.diagram_url,
                     diagramType: savedQuestion.diagram_type,
@@ -899,6 +913,12 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
     };
 
     const activeSubject = subjects.find(s => s.id === selectedSubject);
+
+    // Sort subjects and chapters alphabetically
+    const sortedSubjects = [...subjects].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedChapters = activeSubject?.chapters
+        ? [...activeSubject.chapters].sort((a, b) => a.name.localeCompare(b.name))
+        : [];
 
     return (
         <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
@@ -1034,7 +1054,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                             }}
                         >
                             <option value="">Select Subject</option>
-                            {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            {sortedSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
 
@@ -1057,7 +1077,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                             }}
                         >
                             <option value="">Select Chapter</option>
-                            {activeSubject?.chapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            {sortedChapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>
                 </div>
@@ -1106,26 +1126,93 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                 </div>
 
                 {/* Exhibit Content */}
-                <div style={{ marginBottom: '2rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        Exhibit Content (Optional)
-                    </label>
-                    <textarea
-                        value={exhibitContent}
-                        onChange={(e) => setExhibitContent(e.target.value)}
-                        rows={4}
-                        style={{
-                            width: '100%',
-                            padding: '1rem',
-                            borderRadius: 'var(--radius-md)',
-                            background: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            color: 'white',
-                            resize: 'vertical',
-                            fontSize: '0.9rem'
-                        }}
-                        placeholder="Enter content for the exhibit popup (e.g., lab results, charts, history)..."
-                    />
+                <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <label style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600 }}>
+                            Exhibits (Optional)
+                        </label>
+                        <button
+                            onClick={() => setExhibits([...exhibits, { id: Date.now().toString(), title: '', content: '' }])}
+                            style={{
+                                padding: '0.5rem 1rem',
+                                background: 'rgba(14, 165, 233, 0.1)',
+                                border: '1px solid rgba(14, 165, 233, 0.3)',
+                                borderRadius: 'var(--radius-md)',
+                                color: '#0ea5e9',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: 600
+                            }}
+                        >
+                            + Add Exhibit
+                        </button>
+                    </div>
+
+                    {exhibits.length === 0 && (
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                            No exhibits added. Click the button above to add patient charts, lab results, or other reference material.
+                        </p>
+                    )}
+
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                        {exhibits.map((exhibit, idx) => (
+                            <div key={exhibit.id} style={{ background: 'var(--bg-primary)', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <input
+                                        type="text"
+                                        value={exhibit.title}
+                                        onChange={(e) => {
+                                            const newExhibits = [...exhibits];
+                                            newExhibits[idx].title = e.target.value;
+                                            setExhibits(newExhibits);
+                                        }}
+                                        placeholder="Exhibit Title (e.g. Lab Results)"
+                                        style={{
+                                            fontWeight: 600,
+                                            color: 'white',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            borderBottom: '1px dashed var(--text-secondary)',
+                                            width: '70%',
+                                            outline: 'none'
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => setExhibits(exhibits.filter((_, i) => i !== idx))}
+                                        style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                                <div
+                                    contentEditable
+                                    suppressContentEditableWarning
+                                    onBlur={(e) => {
+                                        const newExhibits = [...exhibits];
+                                        newExhibits[idx].content = e.currentTarget.innerHTML;
+                                        setExhibits(newExhibits);
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: exhibit.content }}
+                                    style={{
+                                        width: '100%',
+                                        minHeight: '300px',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        background: 'var(--bg-secondary)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'white',
+                                        resize: 'vertical',
+                                        overflow: 'auto',
+                                        outline: 'none'
+                                    }}
+                                    className="exhibit-editor"
+                                />
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                                    Tip: You can paste tables directly from Excel, Word, or Google Sheets into the box above.
+                                </p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Cloze-specific fields */}
@@ -2015,8 +2102,17 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                         <textarea
                             value={rationale}
                             onChange={e => setRationale(e.target.value)}
-                            rows={3}
-                            style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                            rows={6}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: 'var(--bg-primary)',
+                                color: 'white',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '4px',
+                                minHeight: '150px',
+                                resize: 'vertical'
+                            }}
                             placeholder="Explain the correct answer and clinical reasoning..."
                         />
                     </div>
@@ -2112,6 +2208,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                             const chapter = subject?.chapters.find(c => c.id === q.chapterId);
                             return (
                                 q.id.toLowerCase().includes(query) ||
+                                q.customId?.toLowerCase().includes(query) ||
                                 q.text.toLowerCase().includes(query) ||
                                 (subject && subject.name.toLowerCase().includes(query)) ||
                                 (chapter && chapter.name.toLowerCase().includes(query))
@@ -2181,7 +2278,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                     }}>
                                         {q.type === 'single' ? 'Single Choice' : q.type === 'multiple' ? 'Multiple Choice' : q.type === 'diagram' ? 'Interactive Flowchart' : q.type === 'cloze' ? 'Fill in Blanks' : q.type === 'matrix' ? 'Matrix Table' : q.type === 'ordering' ? 'Ordering' : 'Input/Calc'}
                                     </span>
-                                    {q.exhibitContent && (
+                                    {q.exhibits && q.exhibits.length > 0 && (
                                         <span style={{
                                             fontSize: '0.75rem',
                                             padding: '0.25rem 0.75rem',
@@ -2191,13 +2288,25 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                             fontWeight: 600,
                                             border: '1px solid rgba(14, 165, 233, 0.2)'
                                         }}>
-                                            Exhibit
+                                            {q.exhibits.length === 1 ? '1 Exhibit' : `${q.exhibits.length} Exhibits`}
                                         </span>
                                     )}
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        {q.customId && (
+                                            <span style={{
+                                                background: 'rgba(255, 255, 255, 0.1)',
+                                                padding: '0.25rem 0.5rem',
+                                                borderRadius: '4px',
+                                                fontSize: '0.8rem',
+                                                fontWeight: 600,
+                                                color: '#e2e8f0'
+                                            }}>
+                                                ID: {q.customId}
+                                            </span>
+                                        )}
                                         <span style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>
                                             {subjects.find(s => s.id === q.subjectId)?.name}
                                             <span style={{ margin: '0 0.5rem', opacity: 0.5 }}>/</span>
