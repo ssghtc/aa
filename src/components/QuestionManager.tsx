@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import {
-    Question, Subject, QuestionType,
+    Question, Subject, QuestionType, ClientNeedsCategory,
     DiagramElement, ClozeElement, MatrixColumn, MatrixRow, OrderingItem,
     DropdownGroup, DragDropItem, DropZone, ClassificationCondition, ClassificationCharacteristic,
     ExpectedFinding, IndicatedIntervention, SataOption, PriorityActionOption, CaseStudySubQuestion, Exhibit
 } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
+import { getClientNeedsLabel } from '@/utils/clientNeeds';
 
 interface QuestionManagerProps {
     questions: Question[];
@@ -64,7 +65,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
 
     // Clinical Field State
     const [rationale, setRationale] = useState('');
-    const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+    const [clientNeeds, setClientNeeds] = useState<ClientNeedsCategory | ''>('');
     const [scenario, setScenario] = useState('');
 
     // 1. Sentence Completion
@@ -148,7 +149,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
         setExhibitContent('');
         setRationale('');
         setScenario('');
-        setDifficulty('medium');
+        setClientNeeds('');
 
         // Reset specialized fields
         setDiagramElements([{ id: 'step1', label: '', options: ['', '', '', ''], correctAnswer: '', position: { x: 50, y: 20 } }]);
@@ -270,7 +271,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             setSelectedChapter(q.chapterId);
             setRationale(q.rationale || '');
             setScenario(q.scenario || '');
-            setDifficulty(q.difficulty || 'medium');
+            setClientNeeds(q.clientNeeds || '');
             setExhibitContent(q.exhibitContent || '');
             setCustomId(q.customId || '');
             setExhibits(q.exhibits || (q.exhibitContent ? [{ id: '1', title: 'Exhibit', content: q.exhibitContent }] : []));
@@ -575,7 +576,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     custom_id: customId,
                     scenario: scenario || null,
                     rationale: rationale || null,
-                    difficulty: difficulty,
+                    client_needs: clientNeeds || null,
                     subject_id: selectedSubject,
                     chapter_id: selectedChapter,
                     question_type: questionType,
@@ -732,7 +733,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     options: [],
                     correctOptions: [],
                     rationale: rationale || undefined,
-                    difficulty: difficulty,
+                    clientNeeds: clientNeeds || undefined,
                     scenario: scenario || undefined,
                     // If simple clinical types, we might want to store more data locally, but for now this matches original logic
                 };
@@ -820,7 +821,9 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             correct_answer_input: questionType === 'input' ? correctAnswerInput : null,
             answer_tolerance: questionType === 'input' ? (answerTolerance || 0) : null,
             input_unit: questionType === 'input' ? inputUnit : null,
-            rationale: rationale || null
+            rationale: rationale || null,
+            scenario: scenario || null,
+            client_needs: clientNeeds || null
         };
 
         if (editingQuestionId) {
@@ -2128,25 +2131,59 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Difficulty Level</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Client Needs Category</label>
                             <select
-                                value={difficulty}
-                                onChange={e => setDifficulty(e.target.value as any)}
+                                value={clientNeeds}
+                                onChange={e => setClientNeeds(e.target.value as ClientNeedsCategory)}
                                 style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}
                             >
-                                <option value="easy">Easy</option>
-                                <option value="medium">Medium</option>
-                                <option value="hard">Hard</option>
+                                <option value="">Select Category...</option>
+                                <optgroup label="Client Needs Categories">
+                                    <option value="management_of_care">Management of Care</option>
+                                    <option value="safety_infection_control">Safety and Infection Control</option>
+                                    <option value="health_promotion_maintenance">Health Promotion and Maintenance</option>
+                                    <option value="psychosocial_integrity">Psychosocial Integrity</option>
+                                    <option value="basic_care_comfort">Basic Care and Comfort</option>
+                                    <option value="pharmacological_parenteral_therapies">Pharmacological and Parenteral Therapies</option>
+                                    <option value="reduction_risk_potential">Reduction of Risk Potential</option>
+                                    <option value="physiological_adaptation">Physiological Adaptation</option>
+                                </optgroup>
+                                <optgroup label="Clinical Judgment">
+                                    <option value="clinical_judgment">Clinical Judgment (Overall)</option>
+                                    <option value="recognize_cues">Recognize Cues</option>
+                                    <option value="analyze_cues">Analyze Cues</option>
+                                    <option value="prioritize_hypotheses">Prioritize Hypotheses</option>
+                                    <option value="generate_solutions">Generate Solutions</option>
+                                    <option value="take_actions">Take Actions</option>
+                                    <option value="evaluate_outcomes">Evaluate Outcomes</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Scenario Context (Optional)</label>
-                            <input
-                                value={scenario}
-                                onChange={e => setScenario(e.target.value)}
-                                placeholder="General context if not covered above..."
-                                style={{ width: '100%', padding: '0.75rem', background: 'var(--bg-primary)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                            <div
+                                contentEditable
+                                suppressContentEditableWarning
+                                onBlur={(e) => {
+                                    setScenario(e.currentTarget.innerHTML);
+                                }}
+                                dangerouslySetInnerHTML={{ __html: scenario }}
+                                style={{
+                                    width: '100%',
+                                    minHeight: '100px',
+                                    padding: '0.75rem',
+                                    borderRadius: '4px',
+                                    background: 'var(--bg-primary)',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'white',
+                                    overflow: 'auto',
+                                    outline: 'none'
+                                }}
+                                className="scenario-editor"
                             />
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                                💡 Tip: You can paste tables and formatted content here too.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -2474,6 +2511,38 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                                 </div>
                                             );
                                         })}
+                                    </div>
+                                )}
+
+
+                                {q.clientNeeds && (
+                                    <div style={{
+                                        marginTop: '1.5rem',
+                                        padding: '1rem',
+                                        background: 'rgba(34, 197, 94, 0.1)',
+                                        borderRadius: '6px',
+                                        borderLeft: '4px solid #22c55e'
+                                    }}>
+                                        <p style={{ fontWeight: 600, color: '#4ade80', marginBottom: '0.25rem', fontSize: '0.9rem' }}>Client Needs Category:</p>
+                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                                            {getClientNeedsLabel(q.clientNeeds)}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {q.scenario && (
+                                    <div style={{
+                                        marginTop: '1.5rem',
+                                        padding: '1rem',
+                                        background: 'rgba(251, 146, 60, 0.1)',
+                                        borderRadius: '6px',
+                                        borderLeft: '4px solid #fb923c'
+                                    }}>
+                                        <p style={{ fontWeight: 600, color: '#fdba74', marginBottom: '0.25rem', fontSize: '0.9rem' }}>Scenario Context:</p>
+                                        <div
+                                            style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}
+                                            dangerouslySetInnerHTML={{ __html: q.scenario }}
+                                        />
                                     </div>
                                 )}
 

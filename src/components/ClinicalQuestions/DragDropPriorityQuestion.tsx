@@ -99,7 +99,7 @@ export default function DragDropPriorityQuestionComponent({ question, onAnswer, 
             {question.scenario && (
                 <div className={styles.scenario}>
                     <strong>Clinical Scenario:</strong>
-                    <p>{question.scenario}</p>
+                    <p dangerouslySetInnerHTML={{ __html: question.scenario }} />
                 </div>
             )}
 

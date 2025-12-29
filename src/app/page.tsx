@@ -55,6 +55,8 @@ export default function Home() {
           subjectId: q.subject_id,
           chapterId: q.chapter_id,
           correctOptions: q.correct_options,
+          clientNeeds: q.client_needs,
+          customId: q.custom_id,
           exhibitContent: q.exhibit_content,
           diagramUrl: q.diagram_url,
           diagramType: q.diagram_type,

@@ -73,6 +73,23 @@ export interface Exhibit {
     content: string;
 }
 
+export type ClientNeedsCategory =
+    | 'management_of_care'
+    | 'safety_infection_control'
+    | 'health_promotion_maintenance'
+    | 'psychosocial_integrity'
+    | 'basic_care_comfort'
+    | 'pharmacological_parenteral_therapies'
+    | 'reduction_risk_potential'
+    | 'physiological_adaptation'
+    | 'clinical_judgment'
+    | 'recognize_cues'
+    | 'analyze_cues'
+    | 'prioritize_hypotheses'
+    | 'generate_solutions'
+    | 'take_actions'
+    | 'evaluate_outcomes';
+
 export interface Question {
     id: string;
     type: QuestionType;
@@ -81,7 +98,7 @@ export interface Question {
     correctOptions: number[]; // Array of indices for correct answers
     subjectId: string;
     chapterId: string;
-    difficulty?: 'easy' | 'medium' | 'hard';
+    clientNeeds?: ClientNeedsCategory;
     rationale?: string;
     scenario?: string;
     customId?: string;

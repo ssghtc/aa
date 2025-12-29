@@ -39,7 +39,7 @@ export default function CompareClassifyQuestionComponent({ question, onAnswer, s
             {question.scenario && (
                 <div className={styles.scenario}>
                     <strong>Clinical Scenario:</strong>
-                    <p>{question.scenario}</p>
+                    <p dangerouslySetInnerHTML={{ __html: question.scenario }} />
                 </div>
             )}
 
