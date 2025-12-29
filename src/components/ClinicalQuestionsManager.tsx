@@ -180,7 +180,7 @@ const allSampleQuestions: DisplayQuestion[] = [
         instruction: 'Complete the following sentence by choosing from the lists of options.',
         scenario: 'A 32-year-old female presents with visual disturbances, numbness in extremities, and fatigue.',
         rationale: 'MS exacerbations are treated with high-dose corticosteroids to reduce inflammation.',
-        difficulty: 'medium',
+        clientNeeds: 'management_of_care',
         subjectId: '1',
         chapterId: '1',
         clinicalTopic: 'Multiple Sclerosis',
@@ -200,7 +200,7 @@ const allSampleQuestions: DisplayQuestion[] = [
         instruction: 'Drag findings requiring immediate follow-up to the priority zone.',
         scenario: 'Patient arrives in ED after motor vehicle accident.',
         rationale: 'Signs of basilar skull fracture and neurological deterioration require immediate intervention.',
-        difficulty: 'hard',
+        clientNeeds: 'reduction_risk_potential',
         subjectId: '1',
         chapterId: '1',
         clinicalTopic: 'Traumatic Brain Injury',
@@ -229,7 +229,7 @@ const allSampleQuestions: DisplayQuestion[] = [
         instruction: 'Classify each characteristic to the correct hematoma type.',
         scenario: 'Nurse caring for patients with different types of intracranial bleeding.',
         rationale: 'Epidural hematomas are arterial and rapid. Subdural hematomas are venous and slower.',
-        difficulty: 'medium',
+        clientNeeds: 'physiological_adaptation',
         subjectId: '1',
         chapterId: '1',
         clinicalTopic: 'Intracranial Hemorrhage',
@@ -256,7 +256,7 @@ const allSampleQuestions: DisplayQuestion[] = [
         instruction: 'Identify if each finding is expected or not expected.',
         scenario: 'Patient with severe TBI being monitored in ICU. ICP readings consistently above 20 mmHg.',
         rationale: 'Cushing\'s triad is a late sign of increased ICP.',
-        difficulty: 'medium',
+        clientNeeds: 'physiological_adaptation',
         subjectId: '1',
         chapterId: '1',
         clinicalTopic: 'Increased ICP',
@@ -277,7 +277,7 @@ const allSampleQuestions: DisplayQuestion[] = [
         questionType: 'indicated_not_indicated',
         title: 'Interventions for Increased ICP',
         instruction: 'Specify if each intervention is indicated or not indicated.',
-        difficulty: 'hard',
+        clientNeeds: 'reduction_risk_potential',
         subjectId: '1',
         chapterId: '1',
         clinicalTopic: 'Increased ICP',
@@ -301,7 +301,7 @@ const allSampleQuestions: DisplayQuestion[] = [
         instruction: 'Select all appropriate nursing interventions.',
         scenario: '52-year-old with severe pneumonia developed ARDS. FiO2 80%, PEEP 12, PaO2 58 mmHg.',
         rationale: 'ARDS management includes lung-protective ventilation, prone positioning, conservative fluids.',
-        difficulty: 'hard',
+        clientNeeds: 'physiological_adaptation',
         subjectId: '1',
         chapterId: '1',
         clinicalTopic: 'ARDS',
@@ -325,7 +325,7 @@ const allSampleQuestions: DisplayQuestion[] = [
         instruction: 'Which is the priority nursing action?',
         scenario: 'Patient with Type 1 diabetes admitted with DKA.',
         rationale: 'Fluid resuscitation is first priority in DKA to restore circulating volume.',
-        difficulty: 'hard',
+        clientNeeds: 'physiological_adaptation',
         subjectId: '1',
         chapterId: '1',
         clinicalTopic: 'DKA',
@@ -347,7 +347,7 @@ const allSampleQuestions: DisplayQuestion[] = [
         title: 'Ischemic Stroke Management',
         instruction: 'Answer questions based on the case study.',
         rationale: 'Tests comprehensive knowledge of stroke assessment, treatment, and complications.',
-        difficulty: 'hard',
+        clientNeeds: 'physiological_adaptation',
         subjectId: '1',
         chapterId: '1',
         clinicalTopic: 'Ischemic Stroke',
@@ -452,7 +452,7 @@ export default function ClinicalQuestionsManager() {
             <div className={styles.questionCard}>
                 <div className={styles.questionHeader}>
                     <span className={styles.questionType}>{questionTypeLabels[question.type]}</span>
-                    {question.difficulty && <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>{question.difficulty}</span>}
+                    {question.clientNeeds && <span className={`${styles.difficulty} ${styles[question.clientNeeds]}`}>{question.clientNeeds}</span>}
                 </div>
                 <h2 className={styles.questionTitle}>{question.text}</h2>
                 {question.scenario && <div className={styles.scenario}><strong>Scenario:</strong> {question.scenario}</div>}
@@ -488,7 +488,7 @@ export default function ClinicalQuestionsManager() {
             <div className={styles.questionCard}>
                 <div className={styles.questionHeader}>
                     <span className={styles.questionType}>Flowchart</span>
-                    {question.difficulty && <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>{question.difficulty}</span>}
+                    {question.clientNeeds && <span className={`${styles.difficulty} ${styles[question.clientNeeds]}`}>{question.clientNeeds}</span>}
                 </div>
                 <h2 className={styles.questionTitle}>{question.text}</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
@@ -535,7 +535,7 @@ export default function ClinicalQuestionsManager() {
             <div className={styles.questionCard}>
                 <div className={styles.questionHeader}>
                     <span className={styles.questionType}>Fill in the Blanks</span>
-                    {question.difficulty && <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>{question.difficulty}</span>}
+                    {question.clientNeeds && <span className={`${styles.difficulty} ${styles[question.clientNeeds]}`}>{question.clientNeeds}</span>}
                 </div>
                 <h2 className={styles.questionTitle}>{question.text}</h2>
                 <div style={{ fontSize: '1.1rem', lineHeight: '2', marginTop: '1.5rem' }}>
@@ -586,7 +586,7 @@ export default function ClinicalQuestionsManager() {
             <div className={styles.questionCard}>
                 <div className={styles.questionHeader}>
                     <span className={styles.questionType}>Matrix Table</span>
-                    {question.difficulty && <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>{question.difficulty}</span>}
+                    {question.clientNeeds && <span className={`${styles.difficulty} ${styles[question.clientNeeds]}`}>{question.clientNeeds}</span>}
                 </div>
                 <h2 className={styles.questionTitle}>{question.text}</h2>
                 <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
@@ -648,7 +648,7 @@ export default function ClinicalQuestionsManager() {
             <div className={styles.questionCard}>
                 <div className={styles.questionHeader}>
                     <span className={styles.questionType}>Ordering</span>
-                    {question.difficulty && <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>{question.difficulty}</span>}
+                    {question.clientNeeds && <span className={`${styles.difficulty} ${styles[question.clientNeeds]}`}>{question.clientNeeds}</span>}
                 </div>
                 <h2 className={styles.questionTitle}>{question.text}</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
@@ -730,7 +730,7 @@ export default function ClinicalQuestionsManager() {
             <div className={styles.questionCard}>
                 <div className={styles.questionHeader}>
                     <span className={styles.questionType}>Input/Calculation</span>
-                    {question.difficulty && <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>{question.difficulty}</span>}
+                    {question.clientNeeds && <span className={`${styles.difficulty} ${styles[question.clientNeeds]}`}>{question.clientNeeds}</span>}
                 </div>
                 <h2 className={styles.questionTitle}>{question.text}</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1.5rem' }}>

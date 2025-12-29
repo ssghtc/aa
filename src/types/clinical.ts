@@ -22,7 +22,7 @@ export interface ClinicalQuestionBase {
     instruction: string;
     scenario?: string;
     rationale?: string;
-    difficulty: Difficulty;
+    difficulty?: Difficulty;
     subjectId: string;
     chapterId: string;
     clinicalTopic?: string;

@@ -44,9 +44,11 @@ export default function SataQuestionComponent({ question, onAnswer, showResults 
         <div className={styles.questionCard}>
             <div className={styles.questionHeader}>
                 <span className={styles.badge}>Select All That Apply</span>
-                <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>
-                    {question.difficulty}
-                </span>
+                {question.difficulty && (
+                    <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>
+                        {question.difficulty}
+                    </span>
+                )}
             </div>
 
             <h3 className={styles.title}>{question.title}</h3>

@@ -143,9 +143,11 @@ export default function CaseStudyQuestionComponent({ question, onAnswer, showRes
         <div className={`${styles.questionCard} ${styles.caseStudyCard}`}>
             <div className={styles.questionHeader}>
                 <span className={`${styles.badge} ${styles.caseStudy}`}>📋 Case Study</span>
-                <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>
-                    {question.difficulty}
-                </span>
+                {question.difficulty && (
+                    <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>
+                        {question.difficulty}
+                    </span>
+                )}
             </div>
 
             <h3 className={styles.title}>{question.title}</h3>

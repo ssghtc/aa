@@ -23,9 +23,11 @@ export default function ExpectedNotExpectedQuestionComponent({ question, onAnswe
         <div className={styles.questionCard}>
             <div className={styles.questionHeader}>
                 <span className={styles.badge}>Expected vs Not Expected</span>
-                <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>
-                    {question.difficulty}
-                </span>
+                {question.difficulty && (
+                    <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>
+                        {question.difficulty}
+                    </span>
+                )}
             </div>
 
             <h3 className={styles.title}>{question.title}</h3>

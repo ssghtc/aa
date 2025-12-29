@@ -55,9 +55,11 @@ export default function SentenceCompletionQuestionComponent({ question, onAnswer
         <div className={styles.questionCard}>
             <div className={styles.questionHeader}>
                 <span className={styles.badge}>Sentence Completion</span>
-                <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>
-                    {question.difficulty}
-                </span>
+                {question.difficulty && (
+                    <span className={`${styles.difficulty} ${styles[question.difficulty]}`}>
+                        {question.difficulty}
+                    </span>
+                )}
             </div>
 
             <h3 className={styles.title}>{question.title}</h3>
