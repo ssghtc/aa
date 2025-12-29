@@ -2098,23 +2098,32 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     </h4>
 
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Rationale (Answer Explanation)</label>
-                        <textarea
-                            value={rationale}
-                            onChange={e => setRationale(e.target.value)}
-                            rows={6}
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                            Rationale (Answer Explanation)
+                        </label>
+                        <div
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) => {
+                                setRationale(e.currentTarget.innerHTML);
+                            }}
+                            dangerouslySetInnerHTML={{ __html: rationale }}
                             style={{
                                 width: '100%',
-                                padding: '0.75rem',
-                                background: 'var(--bg-primary)',
-                                color: 'white',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '4px',
                                 minHeight: '150px',
-                                resize: 'vertical'
+                                padding: '0.75rem',
+                                borderRadius: '4px',
+                                background: 'var(--bg-primary)',
+                                border: '1px solid var(--border-color)',
+                                color: 'white',
+                                overflow: 'auto',
+                                outline: 'none'
                             }}
-                            placeholder="Explain the correct answer and clinical reasoning..."
+                            className="rationale-editor"
                         />
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                            💡 Tip: You can paste tables directly from Excel/Word, format text, and add HTML content.
+                        </p>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -2477,7 +2486,10 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                         borderLeft: '4px solid #6366f1'
                                     }}>
                                         <p style={{ fontWeight: 600, color: '#a5b4fc', marginBottom: '0.25rem', fontSize: '0.9rem' }}>Rationale:</p>
-                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{q.rationale}</div>
+                                        <div
+                                            style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}
+                                            dangerouslySetInnerHTML={{ __html: q.rationale }}
+                                        />
                                     </div>
                                 )}
                             </div>

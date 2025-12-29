@@ -85,7 +85,7 @@ export default function ExpectedNotExpectedQuestionComponent({ question, onAnswe
             {showResults && question.rationale && (
                 <div className={styles.rationale}>
                     <strong>📚 Rationale:</strong>
-                    <p>{question.rationale}</p>
+                    <p dangerouslySetInnerHTML={{ __html: question.rationale }} />
                 </div>
             )}
         </div>

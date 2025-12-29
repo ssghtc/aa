@@ -88,7 +88,7 @@ export default function CompareClassifyQuestionComponent({ question, onAnswer, s
             {showResults && question.rationale && (
                 <div className={styles.rationale}>
                     <strong>📚 Rationale:</strong>
-                    <p>{question.rationale}</p>
+                    <p dangerouslySetInnerHTML={{ __html: question.rationale }} />
                 </div>
             )}
         </div>

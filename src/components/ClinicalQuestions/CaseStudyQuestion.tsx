@@ -221,7 +221,7 @@ export default function CaseStudyQuestionComponent({ question, onAnswer, showRes
             {showResults && question.rationale && (
                 <div className={styles.rationale}>
                     <strong>📚 Overall Case Rationale:</strong>
-                    <p>{question.rationale}</p>
+                    <p dangerouslySetInnerHTML={{ __html: question.rationale }} />
                 </div>
             )}
         </div>
