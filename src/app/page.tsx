@@ -57,6 +57,7 @@ export default function Home() {
           correctOptions: q.correct_options,
           clientNeeds: q.client_needs,
           customId: q.custom_id,
+          exhibits: q.exhibits || [],
           exhibitContent: q.exhibit_content,
           diagramUrl: q.diagram_url,
           diagramType: q.diagram_type,

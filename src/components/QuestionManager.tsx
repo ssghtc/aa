@@ -111,6 +111,16 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
     const [caseSubQuestions, setCaseSubQuestions] = useState<CaseStudySubQuestion[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
+    const [filterSubject, setFilterSubject] = useState('');
+    const [filterChapter, setFilterChapter] = useState('');
+
+    // Reset pagination when search query or filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filterSubject, filterChapter]);
 
     const isClinicalType = (type: string) => [
         'sentence_completion', 'drag_drop_priority', 'compare_classify',
@@ -735,6 +745,7 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     rationale: rationale || undefined,
                     clientNeeds: clientNeeds || undefined,
                     scenario: scenario || undefined,
+                    exhibits: exhibits,
                     // If simple clinical types, we might want to store more data locally, but for now this matches original logic
                 };
 
@@ -2224,30 +2235,82 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
             <div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h3 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0 }}>Recent Questions</h3>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type="text"
-                            placeholder="Search ID, Subject, Chapter..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* Subject Filter */}
+                        <select
+                            value={filterSubject}
+                            onChange={(e) => {
+                                setFilterSubject(e.target.value);
+                                setFilterChapter(''); // Reset chapter when subject changes
+                            }}
                             style={{
-                                padding: '0.75rem 1rem',
-                                paddingLeft: '2.5rem',
-                                width: '300px',
-                                maxWidth: '100%',
+                                padding: '0.75rem',
                                 background: 'var(--bg-card)',
                                 border: 'var(--glass-border)',
                                 borderRadius: 'var(--radius-md)',
                                 color: 'white',
-                                outline: 'none'
+                                outline: 'none',
+                                minWidth: '150px'
                             }}
-                        />
-                        <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+                        >
+                            <option value="">All Subjects</option>
+                            {subjects.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                        </select>
+
+                        {/* Chapter Filter */}
+                        <select
+                            value={filterChapter}
+                            onChange={(e) => setFilterChapter(e.target.value)}
+                            disabled={!filterSubject}
+                            style={{
+                                padding: '0.75rem',
+                                background: !filterSubject ? 'rgba(255,255,255,0.05)' : 'var(--bg-card)',
+                                border: 'var(--glass-border)',
+                                borderRadius: 'var(--radius-md)',
+                                color: !filterSubject ? 'rgba(255,255,255,0.3)' : 'white',
+                                outline: 'none',
+                                minWidth: '150px',
+                                cursor: !filterSubject ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            <option value="">All Chapters</option>
+                            {filterSubject && subjects.find(s => s.id === filterSubject)?.chapters.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                placeholder="Search ID, Text..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    padding: '0.75rem 1rem',
+                                    paddingLeft: '2.5rem',
+                                    width: '300px',
+                                    maxWidth: '100%',
+                                    background: 'var(--bg-card)',
+                                    border: 'var(--glass-border)',
+                                    borderRadius: 'var(--radius-md)',
+                                    color: 'white',
+                                    outline: 'none'
+                                }}
+                            />
+                            <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+                        </div>
                     </div>
                 </div>
                 <div style={{ display: 'grid', gap: '1.5rem' }}>
                     {questions
                         .filter(q => {
+                            // Subject Filter
+                            if (filterSubject && q.subjectId !== filterSubject) return false;
+                            // Chapter Filter
+                            if (filterChapter && q.chapterId !== filterChapter) return false;
+
                             if (!searchQuery) return true;
                             const query = searchQuery.toLowerCase();
                             const subject = subjects.find(s => s.id === q.subjectId);
@@ -2260,7 +2323,9 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                 (chapter && chapter.name.toLowerCase().includes(query))
                             );
                         })
-                        .slice().reverse().map(q => (
+                        .slice().reverse()
+                        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                        .map(q => (
                             <div key={q.id} style={{
                                 padding: '2rem',
                                 background: 'var(--bg-card)',
@@ -2530,6 +2595,37 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                                     </div>
                                 )}
 
+                                {q.exhibits && q.exhibits.length > 0 && (
+                                    <div style={{
+                                        marginTop: '1.5rem',
+                                        padding: '1rem',
+                                        background: 'rgba(14, 165, 233, 0.1)',
+                                        borderRadius: '6px',
+                                        borderLeft: '4px solid #0ea5e9'
+                                    }}>
+                                        <p style={{ fontWeight: 600, color: '#38bdf8', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Exhibits:</p>
+                                        <div style={{ display: 'grid', gap: '1rem' }}>
+                                            {q.exhibits.map((exhibit, idx) => (
+                                                <div key={exhibit.id || idx} style={{
+                                                    background: 'rgba(255, 255, 255, 0.05)',
+                                                    padding: '0.75rem',
+                                                    borderRadius: '4px'
+                                                }}>
+                                                    {exhibit.title && (
+                                                        <p style={{ fontWeight: 600, color: '#e0f2fe', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                                                            {exhibit.title}
+                                                        </p>
+                                                    )}
+                                                    <div
+                                                        style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.6 }}
+                                                        dangerouslySetInnerHTML={{ __html: exhibit.content }}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {q.scenario && (
                                     <div style={{
                                         marginTop: '1.5rem',
@@ -2564,6 +2660,149 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                             </div>
                         ))}
                 </div>
+
+                {/* Pagination Controls */}
+                {questions.filter(q => {
+                    if (filterSubject && q.subjectId !== filterSubject) return false;
+                    if (filterChapter && q.chapterId !== filterChapter) return false;
+
+                    if (!searchQuery) return true;
+                    // ... same filter logic as above to get count ...
+                    const query = searchQuery.toLowerCase();
+                    const subject = subjects.find(s => s.id === q.subjectId);
+                    const chapter = subject?.chapters.find(c => c.id === q.chapterId);
+                    return (
+                        q.id.toLowerCase().includes(query) ||
+                        q.customId?.toLowerCase().includes(query) ||
+                        q.text.toLowerCase().includes(query) ||
+                        (subject && subject.name.toLowerCase().includes(query)) ||
+                        (chapter && chapter.name.toLowerCase().includes(query))
+                    );
+                }).length > itemsPerPage && (
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '2rem' }}>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '6px',
+                                    background: currentPage === 1 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+                                    color: currentPage === 1 ? 'rgba(255,255,255,0.3)' : 'white',
+                                    border: '1px solid var(--border-color)',
+                                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                Previous
+                            </button>
+                            <span style={{ color: 'var(--text-secondary)' }}>
+                                Page {currentPage} of {Math.ceil(questions.filter(q => {
+                                    if (filterSubject && q.subjectId !== filterSubject) return false;
+                                    if (filterChapter && q.chapterId !== filterChapter) return false;
+
+                                    if (!searchQuery) return true;
+                                    const query = searchQuery.toLowerCase();
+                                    const subject = subjects.find(s => s.id === q.subjectId);
+                                    const chapter = subject?.chapters.find(c => c.id === q.chapterId);
+                                    return (
+                                        q.id.toLowerCase().includes(query) ||
+                                        q.customId?.toLowerCase().includes(query) ||
+                                        q.text.toLowerCase().includes(query) ||
+                                        (subject && subject.name.toLowerCase().includes(query)) ||
+                                        (chapter && chapter.name.toLowerCase().includes(query))
+                                    );
+                                }).length / itemsPerPage)}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(questions.filter(q => {
+                                    if (filterSubject && q.subjectId !== filterSubject) return false;
+                                    if (filterChapter && q.chapterId !== filterChapter) return false;
+
+                                    if (!searchQuery) return true;
+                                    const query = searchQuery.toLowerCase();
+                                    const subject = subjects.find(s => s.id === q.subjectId);
+                                    const chapter = subject?.chapters.find(c => c.id === q.chapterId);
+                                    return (
+                                        q.id.toLowerCase().includes(query) ||
+                                        q.customId?.toLowerCase().includes(query) ||
+                                        q.text.toLowerCase().includes(query) ||
+                                        (subject && subject.name.toLowerCase().includes(query)) ||
+                                        (chapter && chapter.name.toLowerCase().includes(query))
+                                    );
+                                }).length / itemsPerPage)))}
+                                disabled={currentPage >= Math.ceil(questions.filter(q => {
+                                    if (filterSubject && q.subjectId !== filterSubject) return false;
+                                    if (filterChapter && q.chapterId !== filterChapter) return false;
+
+                                    if (!searchQuery) return true;
+                                    const query = searchQuery.toLowerCase();
+                                    const subject = subjects.find(s => s.id === q.subjectId);
+                                    const chapter = subject?.chapters.find(c => c.id === q.chapterId);
+                                    return (
+                                        q.id.toLowerCase().includes(query) ||
+                                        q.customId?.toLowerCase().includes(query) ||
+                                        q.text.toLowerCase().includes(query) ||
+                                        (subject && subject.name.toLowerCase().includes(query)) ||
+                                        (chapter && chapter.name.toLowerCase().includes(query))
+                                    );
+                                }).length / itemsPerPage)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '6px',
+                                    background: currentPage >= Math.ceil(questions.filter(q => {
+                                        if (filterSubject && q.subjectId !== filterSubject) return false;
+                                        if (filterChapter && q.chapterId !== filterChapter) return false;
+
+                                        if (!searchQuery) return true;
+                                        const query = searchQuery.toLowerCase();
+                                        const subject = subjects.find(s => s.id === q.subjectId);
+                                        const chapter = subject?.chapters.find(c => c.id === q.chapterId);
+                                        return (
+                                            q.id.toLowerCase().includes(query) ||
+                                            q.customId?.toLowerCase().includes(query) ||
+                                            q.text.toLowerCase().includes(query) ||
+                                            (subject && subject.name.toLowerCase().includes(query)) ||
+                                            (chapter && chapter.name.toLowerCase().includes(query))
+                                        );
+                                    }).length / itemsPerPage) ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+                                    color: currentPage >= Math.ceil(questions.filter(q => {
+                                        if (filterSubject && q.subjectId !== filterSubject) return false;
+                                        if (filterChapter && q.chapterId !== filterChapter) return false;
+
+                                        if (!searchQuery) return true;
+                                        const query = searchQuery.toLowerCase();
+                                        const subject = subjects.find(s => s.id === q.subjectId);
+                                        const chapter = subject?.chapters.find(c => c.id === q.chapterId);
+                                        return (
+                                            q.id.toLowerCase().includes(query) ||
+                                            q.customId?.toLowerCase().includes(query) ||
+                                            q.text.toLowerCase().includes(query) ||
+                                            (subject && subject.name.toLowerCase().includes(query)) ||
+                                            (chapter && chapter.name.toLowerCase().includes(query))
+                                        );
+                                    }).length / itemsPerPage) ? 'rgba(255,255,255,0.3)' : 'white',
+                                    border: '1px solid var(--border-color)',
+                                    cursor: currentPage >= Math.ceil(questions.filter(q => {
+                                        if (filterSubject && q.subjectId !== filterSubject) return false;
+                                        if (filterChapter && q.chapterId !== filterChapter) return false;
+
+                                        if (!searchQuery) return true;
+                                        const query = searchQuery.toLowerCase();
+                                        const subject = subjects.find(s => s.id === q.subjectId);
+                                        const chapter = subject?.chapters.find(c => c.id === q.chapterId);
+                                        return (
+                                            q.id.toLowerCase().includes(query) ||
+                                            q.customId?.toLowerCase().includes(query) ||
+                                            q.text.toLowerCase().includes(query) ||
+                                            (subject && subject.name.toLowerCase().includes(query)) ||
+                                            (chapter && chapter.name.toLowerCase().includes(query))
+                                        );
+                                    }).length / itemsPerPage) ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
             </div>
         </div >
     );
