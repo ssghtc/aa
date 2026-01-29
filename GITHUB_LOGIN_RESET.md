@@ -1,80 +1,45 @@
-# GitHub Login Credentials Reset
+# GitHub Login Credentials Reset (Update: 2026-01-29)
 
 ## What Was Done
 
-✅ **Deleted GitHub credentials** from Windows Credential Manager:
-- `git:https://github.com`
-- `gh:github.com:`
+✅ **Unset Git User configuration**:
+- Global `user.name` and `user.email` have been removed.
+- Local repository `user.name` and `user.email` have been removed.
 
-✅ **Configured Git credential helper** to use Windows Credential Manager
+✅ **Deleted primary GitHub credentials** from Windows Credential Manager:
+- `git:https://github.com` (Deleted)
 
-## Current Git Configuration
-
-**User Name:** guluhtc
-**User Email:** guliapros@gmail.com
-**Repository:** https://github.com/ssghtc/aa.git
+⚠️ **Manual Step Required for API Credential**:
+- One credential `GitHub - https://api.github.com/guluhtc` might still exist in your system. 
+- If you encounter issues, please remove it manually:
+  1. Press `Win + R`, type `control /name Microsoft.CredentialManager` and press Enter.
+  2. Go to **Windows Credentials**.
+  3. Find `GitHub - https://api.github.com/guluhtc` and click **Remove**.
 
 ## What Happens Next
 
-When you try to **push, pull, or fetch** from GitHub, you will be prompted to login with your GitHub credentials.
+When you try to **push, pull, or fetch** from GitHub, or make a commit, you will be prompted to provide new user information and credentials.
 
 ### Steps to Reconnect:
 
-1. **Make a commit** (or try to push existing commits):
+1. **Set your new identity (Optional but recommended)**:
+   ```bash
+   git config --global user.name "Your New Name"
+   git config --global user.email "your.email@example.com"
+   ```
+
+2. **Make a commit or push**:
    ```bash
    git add .
-   git commit -m "Your commit message"
+   git commit -m "Update"
    git push
    ```
 
-2. **You'll see a login prompt** - Windows Credential Manager will ask for your GitHub credentials
-
-3. **Choose your authentication method:**
-   - **Option A: Personal Access Token (Recommended)**
-     - Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
-     - Generate new token with `repo` scope
-     - Use the token as your password when prompted
-   
-   - **Option B: GitHub Desktop/CLI**
-     - Install GitHub Desktop or GitHub CLI
-     - Login through the app
-     - It will handle authentication automatically
-
-4. **Enter your credentials:**
-   - Username: Your GitHub username
-   - Password: Your Personal Access Token (NOT your GitHub password)
-
-## If You Want to Change the Git User Name/Email
-
-To commit with a different GitHub account, also update your Git configuration:
-
-```bash
-# Change user name
-git config --global user.name "YourNewGitHubUsername"
-
-# Change user email
-git config --global user.email "your.new.email@example.com"
-```
-
-## Verify It's Working
-
-After you reconnect, verify with:
-```bash
-git config --list | findstr user
-```
+3. **Login when prompted**:
+   A browser window or a popup will appear asking you to sign in to GitHub. Use your **new account** credentials.
 
 ## Troubleshooting
 
 If you're still not prompted for credentials:
-1. Open **Credential Manager** manually:
-   - Press Win + R
-   - Type: `control /name Microsoft.CredentialManager`
-   - Delete any remaining GitHub credentials under "Windows Credentials"
-
-2. Try the push again
-
-## Notes
-
-- Your credentials will be saved securely in Windows Credential Manager after you login
-- You won't be prompted again until you delete the credentials or they expire
-- Personal Access Tokens are more secure than passwords and are required by GitHub
+1. Open **Credential Manager** manually as described above and clear any items starting with `git:` or `GitHub`.
+2. Try the operation again.
