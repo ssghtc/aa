@@ -1,33 +1,465 @@
-.container {
+.pageContainer {
     min-height: 100vh;
-    padding: 2rem;
     background: var(--bg-primary);
     color: var(--text-primary);
     display: flex;
     flex-direction: column;
+}
+
+.loginCenter {
+    flex: 1;
+    display: flex;
     align-items: center;
+    justify-content: center;
+    padding: 2rem;
 }
 
 .card {
     background: var(--bg-card);
     padding: 2.5rem;
-    border-radius: var(--radius-lg);
-    border: var(--glass-border);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     width: 100%;
-    max-width: 500px;
-    box-shadow: var(--shadow-lg);
+    max-width: 480px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .title {
-    font-size: 2rem;
+    font-size: 2.25rem;
     font-weight: 800;
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
     text-align: center;
     background: var(--gradient-text);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
 }
 
+.subtitle {
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 2.5rem;
+    font-size: 0.95rem;
+}
+
+/* Exam Layout */
+.examDesktopLayout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.sidebar {
+    background: var(--bg-secondary);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.mainContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+    background: var(--bg-primary);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Compact Side Panel Details */
+.studentInfo {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.infoItem {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.infoLabel {
+    color: var(--text-secondary);
+}
+
+.infoValue {
+    color: white;
+    font-weight: 600;
+}
+
+.timerContainer {
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    margin-bottom: 1.25rem;
+    text-align: center;
+}
+
+.timerLabel {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a855f7;
+    margin-bottom: 0.25rem;
+    display: block;
+    font-weight: 700;
+}
+
+.timerValue {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: white;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.navigationGrid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.4rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.detailSection {
+    margin-bottom: 0.75rem;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border-left: 3px solid #6366f1;
+}
+
+.detailLabel {
+    display: block;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 0.15rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.detailValue {
+    font-size: 0.75rem;
+    color: white;
+    font-weight: 600;
+}
+
+.navItem {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.navItemActive {
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+}
+
+.navItemAnswered {
+    background: rgba(52, 211, 153, 0.1);
+    border-color: #34d399;
+    color: #34d399;
+}
+
+/* Question Styling */
+.questionWrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.questionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.badge {
+    padding: 0.3rem 0.6rem;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badgeQuestion {
+    background: rgba(129, 140, 248, 0.1);
+    color: #818cf8;
+}
+
+.questionBody {
+    flex: 1;
+}
+
+.questionBody h3 {
+    font-size: 1.35rem;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.scenarioBox {
+    background: rgba(99, 102, 241, 0.05);
+    border: 1px solid rgba(99, 102, 241, 0.1);
+    padding: 1.25rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #94a3b8;
+    position: relative;
+}
+
+.scenarioBox::before {
+    content: "SCENARIO";
+    position: absolute;
+    top: -8px;
+    left: 12px;
+    background: #1e293b;
+    padding: 0 6px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #6366f1;
+    letter-spacing: 0.05em;
+}
+
+.exhibitsContainer {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.exhibitBtn {
+    padding: 0.5rem 1rem;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.exhibitBtn:hover {
+    background: rgba(51, 65, 85, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.exhibitActive {
+    background: #6366f1 !important;
+    border-color: #818cf8 !important;
+}
+
+.exhibitContent {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.exhibitTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 0.5rem;
+}
+
+.rationaleToggle {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px dashed rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    color: #10b981;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.rationaleToggle:hover {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.rationaleContent {
+    margin-top: 1rem;
+    padding: 1.25rem;
+    background: rgba(16, 185, 129, 0.05);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+    border-left: 4px solid #10b981;
+}
+
+.optionsGrid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.optionCard {
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.2s ease;
+}
+
+.optionCard:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.optionCardSelected {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+
+.optionCircle {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #334155;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.optionCardSelected .optionCircle {
+    border-color: #6366f1;
+    background: #6366f1;
+}
+
+.optionLetter {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #64748b;
+}
+
+.optionCardSelected .optionLetter {
+    color: white;
+}
+
+/* Action Buttons */
+.footerActions {
+    padding: 1.5rem 0;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 2rem;
+}
+
+.secondaryBtn {
+    padding: 0.6rem 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.secondaryBtn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.primaryBtn {
+    padding: 0.75rem 2rem;
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
+}
+
+/* Results */
+.resultGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.resultStat {
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    text-align: center;
+}
+
+.statValue {
+    display: block;
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+}
+
+.statLabel {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Utility */
 .formGroup {
     margin-bottom: 1.5rem;
 }
@@ -36,115 +468,17 @@
     display: block;
     margin-bottom: 0.5rem;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
 }
 
 .input,
 .select {
     width: 100%;
     padding: 1rem;
-    border-radius: var(--radius-md);
     background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
     color: white;
     outline: none;
-    font-size: 1rem;
-}
-
-.button {
-    width: 100%;
-    padding: 1rem;
-    background: var(--gradient-primary);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-/* Exam View */
-.examHeader {
-    width: 100%;
-    max-width: 800px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.questionsList {
-    width: 100%;
-    max-width: 800px;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-.questionCard {
-    background: var(--bg-card);
-    padding: 2rem;
-    border-radius: var(--radius-lg);
-    border: var(--glass-border);
-}
-
-.questionCard h3 {
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-}
-
-.options {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.optionLabel {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.optionLabel:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.optionLabel input {
-    width: 20px;
-    height: 20px;
-    accent-color: var(--accent-primary);
-}
-
-.submitButton {
-    margin-top: 3rem;
-    padding: 1rem 3rem;
-    background: var(--success);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.scoreDisplay {
-    text-align: center;
-    margin: 2rem 0;
-    font-size: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
 }

@@ -17,7 +17,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Mock Data / State
-  // State
+  const [studentCount, setStudentCount] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -30,6 +30,15 @@ export default function Home() {
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      // Fetch Student Count
+      const { count, error: studentsError } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+
+      if (!studentsError && count !== null) {
+        setStudentCount(count);
+      }
 
       // Fetch Subjects and Chapters
       const { data: subjectsData, error: subjectsError } = await supabase
@@ -75,6 +84,15 @@ export default function Home() {
         setQuestions(formattedQuestions);
       }
 
+      // Fetch Blogs
+      const { data: blogsData, error: blogsError } = await supabase
+        .from('blogs')
+        .select('*');
+
+      if (!blogsError && blogsData) {
+        setBlogs(blogsData);
+      }
+
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -85,7 +103,7 @@ export default function Home() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardStats questions={questions} blogs={blogs} subjects={subjects} />;
+        return <DashboardStats questions={questions} blogs={blogs} subjects={subjects} studentCount={studentCount} />;
       case 'questions':
         return <QuestionManager questions={questions} setQuestions={setQuestions} subjects={subjects} />;
       case 'clinical':
@@ -103,7 +121,7 @@ export default function Home() {
       case 'preview':
         return <PreviewSection questions={questions} blogs={blogs} />;
       default:
-        return <DashboardStats questions={questions} blogs={blogs} subjects={subjects} />;
+        return <DashboardStats questions={questions} blogs={blogs} subjects={subjects} studentCount={studentCount} />;
     }
   };
 
