@@ -51,10 +51,12 @@ export default function Home() {
         setSubjects(subjectsData);
       }
 
-      // Fetch Questions
+      // Fetch Questions - Get ALL questions, newest first
       const { data: questionsData, error: questionsError } = await supabase
         .from('questions')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(0, 9999); // Fetch up to 10,000 questions
 
       if (questionsError) throw questionsError;
 
@@ -105,7 +107,7 @@ export default function Home() {
       case 'dashboard':
         return <DashboardStats questions={questions} blogs={blogs} subjects={subjects} studentCount={studentCount} />;
       case 'questions':
-        return <QuestionManager questions={questions} setQuestions={setQuestions} subjects={subjects} />;
+        return <QuestionManager questions={questions} setQuestions={setQuestions} subjects={subjects} onRefresh={fetchData} />;
       case 'clinical':
         return <ClinicalQuestionsManager />;
       case 'blogs':

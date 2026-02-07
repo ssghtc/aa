@@ -12,9 +12,10 @@ interface QuestionManagerProps {
     questions: Question[];
     setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
     subjects: Subject[];
+    onRefresh?: () => Promise<void>;
 }
 
-export default function QuestionManager({ questions, setQuestions, subjects }: QuestionManagerProps) {
+export default function QuestionManager({ questions, setQuestions, subjects, onRefresh }: QuestionManagerProps) {
     const [questionType, setQuestionType] = useState<QuestionType>('single');
     const [questionText, setQuestionText] = useState('');
     const [options, setOptions] = useState(['', '', '', '']);
@@ -951,14 +952,55 @@ export default function QuestionManager({ questions, setQuestions, subjects }: Q
                     </p>
                 </div>
                 <div style={{
-                    background: 'var(--bg-card)',
-                    padding: '0.5rem 1rem',
-                    borderRadius: 'var(--radius-lg)',
-                    border: 'var(--glass-border)',
-                    fontSize: '0.9rem',
-                    color: 'var(--text-accent)'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
                 }}>
-                    Total Questions: {questions.length}
+                    <div style={{
+                        background: 'var(--bg-card)',
+                        padding: '0.5rem 1rem',
+                        borderRadius: 'var(--radius-lg)',
+                        border: 'var(--glass-border)',
+                        fontSize: '0.9rem',
+                        color: 'var(--text-accent)'
+                    }}>
+                        Total Questions: {questions.length}
+                    </div>
+                    {onRefresh && (
+                        <button
+                            onClick={async () => {
+                                await onRefresh();
+                                alert('Data refreshed! All questions loaded from database.');
+                            }}
+                            style={{
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.5rem 1rem',
+                                borderRadius: 'var(--radius-lg)',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        >
+                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                            </svg>
+                            Refresh
+                        </button>
+                    )}
                 </div>
             </div>
 

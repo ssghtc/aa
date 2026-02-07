@@ -248,8 +248,11 @@ export default function StudentPortal() {
                     score++;
                 }
             } else if (q.type === 'multiple' || q.type === 'sata') {
-                const correct = (q.correctOptions || []).sort().toString();
-                const student = (answer || []).sort().toString();
+                // Ensure both correct options and student answer are arrays before sorting
+                const correctOptions = Array.isArray(q.correctOptions) ? q.correctOptions : [];
+                const correct = correctOptions.sort().toString();
+                const studentAnswer = Array.isArray(answer) ? answer : [];
+                const student = studentAnswer.sort().toString();
                 if (correct === student) score++;
             }
         });
@@ -1687,62 +1690,657 @@ export default function StudentPortal() {
 
                 {examState.status === 'result' && (activeTab === 'Performance' || examState.status === 'result') && (
                     <main className={styles.dashboardContent}>
-                        <h2 className={styles.screenTitle}>Performance Analysis</h2>
-                        <p className={styles.screenSubtitle}>Detailed breakdown of your session performance.</p>
+                        {/* Header */}
+                        <div style={{ marginBottom: '2rem' }}>
+                            <h2 className={styles.screenTitle} style={{ marginBottom: '0.5rem' }}>
+                                🎯 Performance Analysis
+                            </h2>
+                            <p className={styles.screenSubtitle}>
+                                Comprehensive breakdown of your exam performance
+                            </p>
+                        </div>
 
-                        <div className={styles.metricsGrid}>
-                            <div className={styles.metricCard}>
-                                <span className={styles.metricLabel}>Total Score</span>
-                                <span className={styles.metricValue}>{examState.score}</span>
-                            </div>
-                            <div className={styles.metricCard}>
-                                <span className={styles.metricLabel}>Accuracy</span>
-                                <span className={styles.metricValue}>{((examState.score / (examState.questions.length || 1)) * 100).toFixed(0)}%</span>
-                            </div>
-                            <div className={styles.metricCard}>
-                                <span className={styles.metricLabel}>Time Elapsed</span>
-                                <span className={styles.metricValue}>{formatTime((examState.questions.length * 60) - examState.timeLeft)}</span>
+                        {/* Score Overview Card */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            borderRadius: '16px',
+                            padding: '2.5rem',
+                            marginBottom: '2rem',
+                            color: 'white',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}>
+                            {/* Background decoration */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '-50px',
+                                right: '-50px',
+                                width: '200px',
+                                height: '200px',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                borderRadius: '50%',
+                                filter: 'blur(40px)'
+                            }} />
+
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'auto 1fr auto',
+                                gap: '2rem',
+                                alignItems: 'center',
+                                position: 'relative',
+                                zIndex: 1
+                            }}>
+                                {/* Circular Score */}
+                                <div style={{
+                                    width: '140px',
+                                    height: '140px',
+                                    borderRadius: '50%',
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    backdropFilter: 'blur(10px)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '4px solid rgba(255, 255, 255, 0.3)'
+                                }}>
+                                    <div style={{ fontSize: '2.5rem', fontWeight: '800', lineHeight: 1 }}>
+                                        {((examState.score / (examState.questions.length || 1)) * 100).toFixed(0)}%
+                                    </div>
+                                    <div style={{ fontSize: '0.875rem', opacity: 0.9, marginTop: '0.25rem' }}>
+                                        Accuracy
+                                    </div>
+                                </div>
+
+                                {/* Stats */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.25rem' }}>
+                                            Score
+                                        </div>
+                                        <div style={{ fontSize: '2rem', fontWeight: '700' }}>
+                                            {examState.score} / {examState.questions.length}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '2rem' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Correct</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '600' }}>
+                                                ✓ {examState.score}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Incorrect</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '600' }}>
+                                                ✗ {examState.questions.length - examState.score}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Time & Actions */}
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{
+                                        background: 'rgba(255, 255, 255, 0.2)',
+                                        backdropFilter: 'blur(10px)',
+                                        padding: '1rem 1.5rem',
+                                        borderRadius: '12px',
+                                        marginBottom: '1rem'
+                                    }}>
+                                        <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '0.25rem' }}>
+                                            Time Elapsed
+                                        </div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: '600' }}>
+                                            ⏱️ {formatTime((examState.questions.length * 60) - examState.timeLeft)}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setExamState(prev => ({ ...prev, status: 'setup' }))}
+                                        style={{
+                                            background: 'white',
+                                            color: '#667eea',
+                                            border: 'none',
+                                            padding: '0.75rem 1.5rem',
+                                            borderRadius: '8px',
+                                            fontSize: '0.95rem',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        New Exam
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <div className={styles.tableWrapper}>
-                            <table className={styles.resultsTable}>
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Subject / Chapter</th>
-                                        <th>Topic</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {examState.questions.map((q, idx) => {
+                        {/* Detailed Statistics */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '1.5rem',
+                            marginBottom: '2rem'
+                        }}>
+                            {/* Performance Grade */}
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '12px',
+                                padding: '1.5rem',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}>
+                                <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                                    Performance Grade
+                                </div>
+                                <div style={{ fontSize: '2rem', fontWeight: '700', color: '#1e293b' }}>
+                                    {(() => {
+                                        const percentage = (examState.score / examState.questions.length) * 100;
+                                        if (percentage >= 90) return '🏆 A+';
+                                        if (percentage >= 80) return '⭐ A';
+                                        if (percentage >= 70) return '✨ B';
+                                        if (percentage >= 60) return '📘 C';
+                                        return '📕 D';
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Questions Attempted */}
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '12px',
+                                padding: '1.5rem',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}>
+                                <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                                    Questions Attempted
+                                </div>
+                                <div style={{ fontSize: '2rem', fontWeight: '700', color: '#1e293b' }}>
+                                    {Object.keys(examState.answers).length} / {examState.questions.length}
+                                </div>
+                            </div>
+
+                            {/* Average Time */}
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '12px',
+                                padding: '1.5rem',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}>
+                                <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                                    Avg. Time/Question
+                                </div>
+                                <div style={{ fontSize: '2rem', fontWeight: '700', color: '#1e293b' }}>
+                                    {Math.floor(((examState.questions.length * 60) - examState.timeLeft) / examState.questions.length)}s
+                                </div>
+                            </div>
+
+                            {/* Success Rate */}
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '12px',
+                                padding: '1.5rem',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}>
+                                <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                                    Success Rate
+                                </div>
+                                <div style={{
+                                    fontSize: '2rem',
+                                    fontWeight: '700',
+                                    color: (examState.score / examState.questions.length) >= 0.7 ? '#10b981' : '#ef4444'
+                                }}>
+                                    {examState.score >= examState.questions.length * 0.7 ? '✓ Pass' : '✗ Fail'}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Category Breakdown */}
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '12px',
+                            padding: '1.5rem',
+                            border: '1px solid #e2e8f0',
+                            marginBottom: '2rem',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                        }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                fontWeight: '600',
+                                marginBottom: '1.5rem',
+                                color: '#1e293b'
+                            }}>
+                                📊 Performance by Category
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {(() => {
+                                    const categoryStats: Record<string, { correct: number; total: number }> = {};
+                                    examState.questions.forEach(q => {
+                                        const category = q.clientNeeds || 'General';
+                                        if (!categoryStats[category]) {
+                                            categoryStats[category] = { correct: 0, total: 0 };
+                                        }
+                                        categoryStats[category].total++;
+
+                                        const studentAnswer = examState.answers[q.id];
+                                        const correctOptions = Array.isArray(q.correctOptions) ? q.correctOptions : [];
                                         const isCorrect = q.type === 'single'
-                                            ? q.correctOptions?.includes(examState.answers[q.id])
-                                            : JSON.stringify((q.correctOptions || []).sort()) === JSON.stringify((examState.answers[q.id] || []).sort());
+                                            ? correctOptions.includes(studentAnswer)
+                                            : JSON.stringify(correctOptions.sort()) === JSON.stringify((Array.isArray(studentAnswer) ? studentAnswer : []).sort());
+
+                                        if (isCorrect) categoryStats[category].correct++;
+                                    });
+
+                                    return Object.entries(categoryStats).map(([category, stats]) => {
+                                        const percentage = (stats.correct / stats.total) * 100;
+                                        return (
+                                            <div key={category} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '500', color: '#334155' }}>
+                                                        {clientNeedsDisplay[category] || category}
+                                                    </span>
+                                                    <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                                                        {stats.correct}/{stats.total} ({percentage.toFixed(0)}%)
+                                                    </span>
+                                                </div>
+                                                <div style={{
+                                                    height: '8px',
+                                                    background: '#e2e8f0',
+                                                    borderRadius: '4px',
+                                                    overflow: 'hidden'
+                                                }}>
+                                                    <div style={{
+                                                        height: '100%',
+                                                        width: `${percentage}%`,
+                                                        background: percentage >= 70 ? 'linear-gradient(90deg, #10b981, #059669)' :
+                                                            percentage >= 50 ? 'linear-gradient(90deg, #f59e0b, #d97706)' :
+                                                                'linear-gradient(90deg, #ef4444, #dc2626)',
+                                                        transition: 'width 0.3s ease'
+                                                    }} />
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* Performance Insights */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                            borderRadius: '12px',
+                            padding: '1.5rem',
+                            marginBottom: '2rem',
+                            border: '1px solid #bfdbfe'
+                        }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                fontWeight: '600',
+                                marginBottom: '1rem',
+                                color: '#1e40af',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                💡 Performance Insights
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {(() => {
+                                    const percentage = (examState.score / examState.questions.length) * 100;
+                                    const insights = [];
+
+                                    if (percentage >= 90) {
+                                        insights.push('🌟 Excellent performance! You have mastered this material.');
+                                    } else if (percentage >= 80) {
+                                        insights.push('👍 Great job! You have a strong understanding of the concepts.');
+                                    } else if (percentage >= 70) {
+                                        insights.push('📚 Good effort! Review the incorrect questions to improve further.');
+                                    } else if (percentage >= 60) {
+                                        insights.push('⚠️ You passed, but there is room for improvement. Focus on weak areas.');
+                                    } else {
+                                        insights.push('📖 More study is needed. Review the material and try again.');
+                                    }
+
+                                    const incorrectCount = examState.questions.length - examState.score;
+                                    if (incorrectCount > 0) {
+                                        insights.push(`📝 Review ${incorrectCount} incorrect question${incorrectCount > 1 ? 's' : ''} to strengthen your knowledge.`);
+                                    }
+
+                                    const timePerQuestion = ((examState.questions.length * 60) - examState.timeLeft) / examState.questions.length;
+                                    if (timePerQuestion < 30) {
+                                        insights.push('⚡ You answered quickly! Make sure to read questions carefully.');
+                                    } else if (timePerQuestion > 90) {
+                                        insights.push('🐌 Consider practicing time management for better efficiency.');
+                                    }
+
+                                    return insights.map((insight, idx) => (
+                                        <div key={idx} style={{
+                                            fontSize: '0.95rem',
+                                            color: '#1e40af',
+                                            lineHeight: '1.6'
+                                        }}>
+                                            {insight}
+                                        </div>
+                                    ));
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* Question Review Table */}
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '12px',
+                            padding: '1.5rem',
+                            border: '1px solid #e2e8f0',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '1.5rem',
+                                flexWrap: 'wrap',
+                                gap: '1rem'
+                            }}>
+                                <h3 style={{
+                                    fontSize: '1.25rem',
+                                    fontWeight: '600',
+                                    color: '#1e293b',
+                                    margin: 0
+                                }}>
+                                    📋 Question-by-Question Review
+                                </h3>
+
+                                {/* Filter Buttons */}
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    {['all', 'correct', 'incorrect'].map(filter => {
+                                        const isActive = (examState as any).reviewFilter === filter || (!((examState as any).reviewFilter) && filter === 'all');
+                                        return (
+                                            <button
+                                                key={filter}
+                                                onClick={() => setExamState(prev => ({ ...prev, reviewFilter: filter } as any))}
+                                                style={{
+                                                    padding: '0.5rem 1rem',
+                                                    borderRadius: '8px',
+                                                    border: isActive ? 'none' : '1px solid #e2e8f0',
+                                                    background: isActive
+                                                        ? filter === 'correct' ? 'linear-gradient(135deg, #10b981, #059669)'
+                                                            : filter === 'incorrect' ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                                                                : 'linear-gradient(135deg, #667eea, #764ba2)'
+                                                        : 'white',
+                                                    color: isActive ? 'white' : '#64748b',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: isActive ? '600' : '500',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    textTransform: 'capitalize'
+                                                }}
+                                            >
+                                                {filter === 'all' && `All (${examState.questions.length})`}
+                                                {filter === 'correct' && `✓ Correct (${examState.score})`}
+                                                {filter === 'incorrect' && `✗ Incorrect (${examState.questions.length - examState.score})`}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Question Cards */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {examState.questions
+                                    .map((q, idx) => {
+                                        const studentAnswer = examState.answers[q.id];
+                                        const correctOptions = Array.isArray(q.correctOptions) ? q.correctOptions : [];
+                                        const isCorrect = q.type === 'single'
+                                            ? correctOptions.includes(studentAnswer)
+                                            : JSON.stringify(correctOptions.sort()) === JSON.stringify((Array.isArray(studentAnswer) ? studentAnswer : []).sort());
+                                        return { q, idx, isCorrect, studentAnswer, correctOptions };
+                                    })
+                                    .filter(({ isCorrect }) => {
+                                        const filter = (examState as any).reviewFilter || 'all';
+                                        if (filter === 'correct') return isCorrect;
+                                        if (filter === 'incorrect') return !isCorrect;
+                                        return true;
+                                    })
+                                    .map(({ q, idx, isCorrect, studentAnswer, correctOptions }) => {
                                         const subjName = subjects.find(s => s.id === q.subjectId)?.name || 'Unknown';
 
                                         return (
-                                            <tr key={q.id} onClick={() => setExamState(p => ({ ...p, status: 'taking', currentQuestionIndex: idx }))}>
-                                                <td>{q.customId || 'Q' + (idx + 1)}</td>
-                                                <td>
-                                                    <div style={{ fontWeight: 500 }}>{subjName}</div>
-                                                </td>
-                                                <td>{q.clientNeeds ? clientNeedsDisplay[q.clientNeeds] : 'General'}</td>
-                                                <td>
-                                                    <span className={isCorrect ? styles.statusCorrect : styles.statusIncorrect}>
-                                                        {isCorrect ? 'Correct' : 'Incorrect'}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <button style={{ background: 'transparent', border: 'none', color: '#0056b3', cursor: 'pointer', fontWeight: 500 }}>Review</button>
-                                                </td>
-                                            </tr>
+                                            <div
+                                                key={q.id}
+                                                onClick={() => setExamState(p => ({ ...p, status: 'taking', currentQuestionIndex: idx }))}
+                                                style={{
+                                                    border: `2px solid ${isCorrect ? '#d1fae5' : '#fee2e2'}`,
+                                                    borderRadius: '12px',
+                                                    padding: '1.25rem',
+                                                    background: isCorrect ? '#f0fdf4' : '#fef2f2',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    position: 'relative'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'translateY(0)';
+                                                    e.currentTarget.style.boxShadow = 'none';
+                                                }}
+                                            >
+                                                {/* Status Badge */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: '1rem',
+                                                    right: '1rem',
+                                                    padding: '0.375rem 0.75rem',
+                                                    borderRadius: '6px',
+                                                    background: isCorrect ? '#10b981' : '#ef4444',
+                                                    color: 'white',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: '600',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.25rem'
+                                                }}>
+                                                    {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                                                </div>
+
+                                                {/* Question Header */}
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'flex-start',
+                                                    gap: '1rem',
+                                                    marginBottom: '0.75rem',
+                                                    paddingRight: '120px' // Space for status badge
+                                                }}>
+                                                    {/* Question Number Circle */}
+                                                    <div style={{
+                                                        width: '48px',
+                                                        height: '48px',
+                                                        borderRadius: '50%',
+                                                        background: isCorrect ? '#10b981' : '#ef4444',
+                                                        color: 'white',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '1.125rem',
+                                                        fontWeight: '700',
+                                                        flexShrink: 0
+                                                    }}>
+                                                        {idx + 1}
+                                                    </div>
+
+                                                    {/* Question Info */}
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{
+                                                            fontSize: '0.875rem',
+                                                            color: '#64748b',
+                                                            marginBottom: '0.25rem',
+                                                            fontWeight: '500'
+                                                        }}>
+                                                            {q.customId || `Question ${idx + 1}`}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '1.125rem',
+                                                            fontWeight: '600',
+                                                            color: '#1e293b',
+                                                            marginBottom: '0.5rem'
+                                                        }}>
+                                                            {subjName}
+
+                                                        </div>
+
+                                                        {/* Badges */}
+                                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                            {/* Question Type Badge */}
+                                                            <span style={{
+                                                                padding: '0.25rem 0.625rem',
+                                                                borderRadius: '6px',
+                                                                background: '#e0e7ff',
+                                                                color: '#4338ca',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: '600',
+                                                                textTransform: 'uppercase'
+                                                            }}>
+                                                                {q.type === 'single' ? '📝 Single Choice' :
+                                                                    q.type === 'multiple' ? '☑️ Multiple Choice' :
+                                                                        '✅ SATA'}
+                                                            </span>
+
+                                                            {/* Category Badge */}
+                                                            {q.clientNeeds && (
+                                                                <span style={{
+                                                                    padding: '0.25rem 0.625rem',
+                                                                    borderRadius: '6px',
+                                                                    background: '#fef3c7',
+                                                                    color: '#92400e',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: '600'
+                                                                }}>
+                                                                    🏥 {clientNeedsDisplay[q.clientNeeds]}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Answer Summary */}
+                                                <div style={{
+                                                    marginTop: '1rem',
+                                                    padding: '1rem',
+                                                    background: 'white',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #e2e8f0'
+                                                }}>
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: '1fr 1fr',
+                                                        gap: '1rem'
+                                                    }}>
+                                                        <div>
+                                                            <div style={{
+                                                                fontSize: '0.75rem',
+                                                                color: '#64748b',
+                                                                marginBottom: '0.25rem',
+                                                                fontWeight: '600',
+                                                                textTransform: 'uppercase'
+                                                            }}>
+                                                                Your Answer
+                                                            </div>
+                                                            <div style={{
+                                                                fontSize: '0.95rem',
+                                                                fontWeight: '600',
+                                                                color: isCorrect ? '#10b981' : '#ef4444'
+                                                            }}>
+                                                                {Array.isArray(studentAnswer)
+                                                                    ? studentAnswer.map(a => String.fromCharCode(65 + a)).join(', ') || 'Not answered'
+                                                                    : studentAnswer !== undefined ? String.fromCharCode(65 + studentAnswer) : 'Not answered'
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div style={{
+                                                                fontSize: '0.75rem',
+                                                                color: '#64748b',
+                                                                marginBottom: '0.25rem',
+                                                                fontWeight: '600',
+                                                                textTransform: 'uppercase'
+                                                            }}>
+                                                                Correct Answer
+                                                            </div>
+                                                            <div style={{
+                                                                fontSize: '0.95rem',
+                                                                fontWeight: '600',
+                                                                color: '#10b981'
+                                                            }}>
+                                                                {correctOptions.map(a => String.fromCharCode(65 + a)).join(', ')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Review Button */}
+                                                <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+                                                    <button style={{
+                                                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        padding: '0.625rem 1.25rem',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.875rem',
+                                                        fontWeight: '600',
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.5rem'
+                                                    }}>
+                                                        Review Question & Rationale →
+                                                    </button>
+                                                </div>
+                                            </div>
                                         );
                                     })}
-                                </tbody>
-                            </table>
+                            </div>
+
+                            {/* Empty State */}
+                            {(() => {
+                                const filter = (examState as any).reviewFilter || 'all';
+                                const filteredCount = examState.questions.filter((q, idx) => {
+                                    const studentAnswer = examState.answers[q.id];
+                                    const correctOptions = Array.isArray(q.correctOptions) ? q.correctOptions : [];
+                                    const isCorrect = q.type === 'single'
+                                        ? correctOptions.includes(studentAnswer)
+                                        : JSON.stringify(correctOptions.sort()) === JSON.stringify((Array.isArray(studentAnswer) ? studentAnswer : []).sort());
+
+                                    if (filter === 'correct') return isCorrect;
+                                    if (filter === 'incorrect') return !isCorrect;
+                                    return true;
+                                }).length;
+
+                                if (filteredCount === 0) {
+                                    return (
+                                        <div style={{
+                                            textAlign: 'center',
+                                            padding: '3rem 1rem',
+                                            color: '#64748b'
+                                        }}>
+                                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                                                {filter === 'correct' ? '🎉' : filter === 'incorrect' ? '✨' : '📝'}
+                                            </div>
+                                            <div style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                                                {filter === 'correct' && 'No correct answers yet'}
+                                                {filter === 'incorrect' && 'Perfect! No incorrect answers'}
+                                                {filter === 'all' && 'No questions available'}
+                                            </div>
+                                            <div style={{ fontSize: '0.95rem' }}>
+                                                {filter === 'incorrect' && 'You answered all questions correctly!'}
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                     </main>
                 )}
